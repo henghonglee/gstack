@@ -1,0 +1,27 @@
+#!/usr/bin/env bash
+# setup-kb — install gstack knowledge base skills into Claude Code
+# No dependencies required. Just copies SKILL.md files.
+set -e
+
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+KB_DIR="$SCRIPT_DIR/kb"
+
+if [ ! -d "$KB_DIR" ]; then
+  echo "Error: kb/ directory not found. Run 'bun run gen:kb' first." >&2
+  exit 1
+fi
+
+INSTALLED=0
+for skill_dir in "$KB_DIR"/*/; do
+  [ ! -d "$skill_dir" ] && continue
+  name=$(basename "$skill_dir")
+  target="$HOME/.claude/skills/$name"
+  mkdir -p "$target"
+  cp "$skill_dir/SKILL.md" "$target/SKILL.md"
+  echo "  $name"
+  INSTALLED=$((INSTALLED + 1))
+done
+
+echo ""
+echo "Installed $INSTALLED KB skills to ~/.claude/skills/"
+echo "Restart Claude Code to pick them up."
