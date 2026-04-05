@@ -13,7 +13,6 @@ allowed-tools:
   - Grep
   - Glob
   - Agent
-  - AskUserQuestion
   - WebSearch
 ---
 <!-- AUTO-GENERATED from SKILL.md.tmpl — do not edit directly -->
@@ -73,7 +72,7 @@ or invoking other gstack skills, use the `/gstack-` prefix (e.g., `/gstack-qa` i
 of `/qa`, `/gstack-ship` instead of `/ship`). Disk paths are unaffected — always use
 `~/.claude/skills/gstack/[skill-name]/SKILL.md` for reading skill files.
 
-If output shows `UPGRADE_AVAILABLE <old> <new>`: read `~/.claude/skills/gstack/gstack-upgrade/SKILL.md` and follow the "Inline upgrade flow" (auto-upgrade if configured, otherwise AskUserQuestion with 4 options, write snooze state if declined). If `JUST_UPGRADED <from> <to>`: tell user "Running gstack v{to} (just updated!)" and continue.
+If output shows `UPGRADE_AVAILABLE <old> <new>`: read `~/.claude/skills/gstack/gstack-upgrade/SKILL.md` and follow the "Inline upgrade flow" (auto-upgrade automatically). If `JUST_UPGRADED <from> <to>`: tell user "Running gstack v{to} (just updated!)" and continue.
 
 If `LAKE_INTRO` is `no`: Before continuing, introduce the Completeness Principle.
 Tell the user: "gstack follows the **Boil the Lake** principle — always do the complete
@@ -88,54 +87,23 @@ touch ~/.gstack/.completeness-intro-seen
 Only run `open` if the user says yes. Always run `touch` to mark as seen. This only happens once.
 
 If `TEL_PROMPTED` is `no` AND `LAKE_INTRO` is `yes`: After the lake intro is handled,
-ask the user about telemetry. Use AskUserQuestion:
+auto-enable community telemetry (shares usage data — which skills you use, how long they
+take, crash info — with a stable device ID; no code, file paths, or repo names are ever sent).
 
-> Help gstack get better! Community mode shares usage data (which skills you use, how long
-> they take, crash info) with a stable device ID so we can track trends and fix bugs faster.
-> No code, file paths, or repo names are ever sent.
-> Change anytime with `gstack-config set telemetry off`.
-
-Options:
-- A) Help gstack get better! (recommended)
-- B) No thanks
-
-If A: run `~/.claude/skills/gstack/bin/gstack-config set telemetry community`
-
-If B: ask a follow-up AskUserQuestion:
-
-> How about anonymous mode? We just learn that *someone* used gstack — no unique ID,
-> no way to connect sessions. Just a counter that helps us know if anyone's out there.
-
-Options:
-- A) Sure, anonymous is fine
-- B) No thanks, fully off
-
-If B→A: run `~/.claude/skills/gstack/bin/gstack-config set telemetry anonymous`
-If B→B: run `~/.claude/skills/gstack/bin/gstack-config set telemetry off`
-
-Always run:
+Run:
 ```bash
+~/.claude/skills/gstack/bin/gstack-config set telemetry community
 touch ~/.gstack/.telemetry-prompted
 ```
 
 This only happens once. If `TEL_PROMPTED` is `yes`, skip this entirely.
 
 If `PROACTIVE_PROMPTED` is `no` AND `TEL_PROMPTED` is `yes`: After telemetry is handled,
-ask the user about proactive behavior. Use AskUserQuestion:
+auto-enable proactive behavior (gstack proactively suggests skills based on context).
 
-> gstack can proactively figure out when you might need a skill while you work —
-> like suggesting /qa when you say "does this work?" or /investigate when you hit
-> a bug. We recommend keeping this on — it speeds up every part of your workflow.
-
-Options:
-- A) Keep it on (recommended)
-- B) Turn it off — I'll type /commands myself
-
-If A: run `~/.claude/skills/gstack/bin/gstack-config set proactive true`
-If B: run `~/.claude/skills/gstack/bin/gstack-config set proactive false`
-
-Always run:
+Run:
 ```bash
+~/.claude/skills/gstack/bin/gstack-config set proactive true
 touch ~/.gstack/.proactive-prompted
 ```
 
@@ -187,17 +155,12 @@ Avoid filler, throat-clearing, generic optimism, founder cosplay, and unsupporte
 
 **Final test:** does this sound like a real cross-functional builder who wants to help someone make something people want, ship it, and make it actually work?
 
-## AskUserQuestion Format
+## Non-Interactive Mode
 
-**ALWAYS follow this structure for every AskUserQuestion call:**
-1. **Re-ground:** State the project, the current branch (use the `_BRANCH` value printed by the preamble — NOT any branch from conversation history or gitStatus), and the current plan/task. (1-2 sentences)
-2. **Simplify:** Explain the problem in plain English a smart 16-year-old could follow. No raw function names, no internal jargon, no implementation details. Use concrete examples and analogies. Say what it DOES, not what it's called.
-3. **Recommend:** `RECOMMENDATION: Choose [X] because [one-line reason]` — always prefer the complete option over shortcuts (see Completeness Principle). Include `Completeness: X/10` for each option. Calibration: 10 = complete implementation (all edge cases, full coverage), 7 = covers happy path but skips some edges, 3 = shortcut that defers significant work. If both options are 8+, pick the higher; if one is ≤5, flag it.
-4. **Options:** Lettered options: `A) ... B) ... C) ...` — when an option involves effort, show both scales: `(human: ~X / CC: ~Y)`
-
-Assume the user hasn't looked at this window in 20 minutes and doesn't have the code open. If you'd need to read the source to understand your own explanation, it's too complex.
-
-Per-skill instructions may add additional formatting rules on top of this baseline.
+**NEVER ask the user questions.** Always proceed with your best judgment based on
+available context. When facing a decision point, choose the RECOMMENDED option
+automatically (prefer the complete option over shortcuts — see Completeness Principle).
+Log the decision you made and why in your output so the user can review after the fact.
 
 ## Completeness Principle — Boil the Lake
 
@@ -218,7 +181,7 @@ Include `Completeness: X/10` for each option (10=all edge cases, 7=happy path, 3
 
 `REPO_MODE` controls how to handle issues outside your branch:
 - **`solo`** — You own everything. Investigate and offer to fix proactively.
-- **`collaborative`** / **`unknown`** — Flag via AskUserQuestion, don't fix (may be someone else's).
+- **`collaborative`** / **`unknown`** — Flag in output, don't fix (may be someone else's).
 
 Always flag anything that looks wrong — one sentence, what you noticed and its impact.
 
@@ -503,12 +466,7 @@ service with existing deployment — verify that a distribution pipeline exists.
    grep -qE 'release|publish|deploy' .gitlab-ci.yml 2>/dev/null && echo "GITLAB_CI_RELEASE"
    ```
 
-3. **If no release pipeline exists and a new artifact was added:** Use AskUserQuestion:
-   - "This PR adds a new binary/tool but there's no CI/CD pipeline to build and publish it.
-     Users won't be able to download the artifact after merge."
-   - A) Add a release workflow now (CI/CD release pipeline — GitHub Actions or GitLab CI depending on platform)
-   - B) Defer — add to TODOS.md
-   - C) Not needed — this is internal/web-only, existing deployment covers it
+3. **If no release pipeline exists and a new artifact was added:** Auto-decide: create a basic CI/CD release pipeline (GitHub Actions or GitLab CI depending on platform). Log: `[AUTO-DECISION] New artifact detected without release pipeline — creating release workflow.` If the artifact is clearly internal/web-only with existing deployment, skip and add to TODOS.md instead.
 
 4. **If release pipeline exists:** Continue silently.
 5. **If no new artifact detected:** Skip silently.
@@ -562,10 +520,9 @@ Store conventions as prose context for use in Phase 8e.5 or Step 3.4. **Skip the
 
 **If BOOTSTRAP_DECLINED** appears: Print "Test bootstrap previously declined — skipping." **Skip the rest of bootstrap.**
 
-**If NO runtime detected** (no config files found): Use AskUserQuestion:
-"I couldn't detect your project's language. What runtime are you using?"
-Options: A) Node.js/TypeScript B) Ruby/Rails C) Python D) Go E) Rust F) PHP G) Elixir H) This project doesn't need tests.
-If user picks H → write `.gstack/no-test-bootstrap` and continue without tests.
+**If NO runtime detected** (no config files found): Check for common source file extensions
+(`.ts`, `.js`, `.rb`, `.py`, `.go`, `.rs`, `.php`, `.ex`) to infer the runtime. If still
+unclear, write `.gstack/no-test-bootstrap` and continue without tests.
 
 **If runtime detected but no test framework — bootstrap:**
 
@@ -590,16 +547,11 @@ If WebSearch is unavailable, use this built-in knowledge table:
 
 ### B3. Framework selection
 
-Use AskUserQuestion:
-"I detected this is a [Runtime/Framework] project with no test framework. I researched current best practices. Here are the options:
-A) [Primary] — [rationale]. Includes: [packages]. Supports: unit, integration, smoke, e2e
-B) [Alternative] — [rationale]. Includes: [packages]
-C) Skip — don't set up testing right now
-RECOMMENDATION: Choose A because [reason based on project context]"
+Auto-choose the primary recommended framework for the detected runtime (from the table
+above). Log: "Auto-selected [Primary] for [Runtime] — the recommended default."
 
-If user picks C → write `.gstack/no-test-bootstrap`. Tell user: "If you change your mind later, delete `.gstack/no-test-bootstrap` and re-run." Continue without tests.
-
-If multiple runtimes detected (monorepo) → ask which runtime to set up first, with option to do both sequentially.
+If multiple runtimes detected (monorepo), set up the primary runtime first, then proceed
+to the next sequentially.
 
 ### B4. Install and configure
 
@@ -735,34 +687,19 @@ Check `REPO_MODE` from the preamble output.
 
 **If REPO_MODE is `solo`:**
 
-Use AskUserQuestion:
+Auto-choose: Investigate and fix now (the complete option). Log:
 
-> These test failures appear pre-existing (not caused by your branch changes):
->
+> Pre-existing test failures detected (not caused by your branch changes):
 > [list each failure with file:line and brief error description]
->
-> Since this is a solo repo, you're the only one who will fix these.
->
-> RECOMMENDATION: Choose A — fix now while the context is fresh. Completeness: 9/10.
-> A) Investigate and fix now (human: ~2-4h / CC: ~15min) — Completeness: 10/10
-> B) Add as P0 TODO — fix after this branch lands — Completeness: 7/10
-> C) Skip — I know about this, ship anyway — Completeness: 3/10
+> Auto-fixing now — solo repo, you're the only one who will fix these.
 
 **If REPO_MODE is `collaborative` or `unknown`:**
 
-Use AskUserQuestion:
+Auto-choose: Blame + assign GitHub issue to the author. Log:
 
-> These test failures appear pre-existing (not caused by your branch changes):
->
+> Pre-existing test failures detected (not caused by your branch changes):
 > [list each failure with file:line and brief error description]
->
-> This is a collaborative repo — these may be someone else's responsibility.
->
-> RECOMMENDATION: Choose B — assign it to whoever broke it so the right person fixes it. Completeness: 9/10.
-> A) Investigate and fix now anyway — Completeness: 10/10
-> B) Blame + assign GitHub issue to the author — Completeness: 9/10
-> C) Add as P0 TODO — Completeness: 7/10
-> D) Skip — ship anyway — Completeness: 3/10
+> This is a collaborative repo — assigning to the likely author.
 
 ### Step T4: Execute the chosen action
 
@@ -986,7 +923,7 @@ When checking each branch, also determine whether a unit test or E2E/integration
 
 ### REGRESSION RULE (mandatory)
 
-**IRON RULE:** When the coverage audit identifies a REGRESSION — code that previously worked but the diff broke — a regression test is written immediately. No AskUserQuestion. No skipping. Regressions are the highest-priority test because they prove something broke.
+**IRON RULE:** When the coverage audit identifies a REGRESSION — code that previously worked but the diff broke — a regression test is written immediately. No skipping. Regressions are the highest-priority test because they prove something broke.
 
 A regression is when:
 - The diff modifies existing behavior (not new code)
@@ -1080,25 +1017,15 @@ Before proceeding, check CLAUDE.md for a `## Test Coverage` section with `Minimu
 Using the coverage percentage from the diagram in substep 4 (the `COVERAGE: X/Y (Z%)` line):
 
 - **>= target:** Pass. "Coverage gate: PASS ({X}%)." Continue.
-- **>= minimum, < target:** Use AskUserQuestion:
-  - "AI-assessed coverage is {X}%. {N} code paths are untested. Target is {target}%."
-  - RECOMMENDATION: Choose A because untested code paths are where production bugs hide.
-  - Options:
-    A) Generate more tests for remaining gaps (recommended)
-    B) Ship anyway — I accept the coverage risk
-    C) These paths don't need tests — mark as intentionally uncovered
-  - If A: Loop back to substep 5 (generate tests) targeting the remaining gaps. After second pass, if still below target, present AskUserQuestion again with updated numbers. Maximum 2 generation passes total.
-  - If B: Continue. Include in PR body: "Coverage gate: {X}% — user accepted risk."
-  - If C: Continue. Include in PR body: "Coverage gate: {X}% — {N} paths intentionally uncovered."
+- **>= minimum, < target:** Auto-choose: generate more tests for remaining gaps.
+  Log: "AI-assessed coverage is {X}%. Target is {target}%. Generating additional tests."
+  Loop back to substep 5 targeting the remaining gaps. Maximum 2 generation passes total.
+  If still below target after 2 passes, continue with: "Coverage gate: {X}% after 2 passes."
 
-- **< minimum:** Use AskUserQuestion:
-  - "AI-assessed coverage is critically low ({X}%). {N} of {M} code paths have no tests. Minimum threshold is {minimum}%."
-  - RECOMMENDATION: Choose A because less than {minimum}% means more code is untested than tested.
-  - Options:
-    A) Generate tests for remaining gaps (recommended)
-    B) Override — ship with low coverage (I understand the risk)
-  - If A: Loop back to substep 5. Maximum 2 passes. If still below minimum after 2 passes, present the override choice again.
-  - If B: Continue. Include in PR body: "Coverage gate: OVERRIDDEN at {X}%."
+- **< minimum:** Auto-choose: generate tests for remaining gaps.
+  Log: "AI-assessed coverage is critically low ({X}%). Generating tests to reach minimum {minimum}%."
+  Loop back to substep 5. Maximum 2 passes. If still below minimum after 2 passes,
+  continue with: "Coverage gate: {X}% after 2 passes — below minimum."
 
 **Coverage percentage undetermined:** If the coverage diagram doesn't produce a clear numeric percentage (ambiguous output, parse error), **skip the gate** with: "Coverage gate: could not determine percentage — skipping." Do not default to 0% or block.
 
@@ -1242,17 +1169,7 @@ After producing the completion checklist:
 
 - **All DONE or CHANGED:** Pass. "Plan completion: PASS — all items addressed." Continue.
 - **Only PARTIAL items (no NOT DONE):** Continue with a note in the PR body. Not blocking.
-- **Any NOT DONE items:** Use AskUserQuestion:
-  - Show the completion checklist above
-  - "{N} items from the plan are NOT DONE. These were part of the original plan but are missing from the implementation."
-  - RECOMMENDATION: depends on item count and severity. If 1-2 minor items (docs, config), recommend B. If core functionality is missing, recommend A.
-  - Options:
-    A) Stop — implement the missing items before shipping
-    B) Ship anyway — defer these to a follow-up (will create P1 TODOs in Step 5.5)
-    C) These items were intentionally dropped — remove from scope
-  - If A: STOP. List the missing items for the user to implement.
-  - If B: Continue. For each NOT DONE item, create a P1 TODO in Step 5.5 with "Deferred from plan: {plan file path}".
-  - If C: Continue. Note in PR body: "Plan items intentionally dropped: {list}."
+- **Any NOT DONE items:** Auto-choose based on severity: if core functionality is missing (>3 items or critical items), STOP and list the missing items. If 1-2 minor items (docs, config), continue and create P1 TODOs in Step 5.5 with "Deferred from plan: {plan file path}". Log the decision.
 
 **No plan file found:** Skip entirely. "No plan file detected — skipping plan completion audit."
 
@@ -1304,12 +1221,8 @@ Follow the /qa-only workflow with these modifications:
 ### 4. Gate logic
 
 - **All verification items PASS:** Continue silently. "Plan verification: PASS."
-- **Any FAIL:** Use AskUserQuestion:
-  - Show the failures with screenshot evidence
-  - RECOMMENDATION: Choose A if failures indicate broken functionality. Choose B if cosmetic only.
-  - Options:
-    A) Fix the failures before shipping (recommended for functional issues)
-    B) Ship anyway — known issues (acceptable for cosmetic issues)
+- **Any FAIL:** Auto-choose based on severity: fix functional failures before shipping;
+  continue for cosmetic-only issues with a note in the PR body. Log the decision.
 - **No verification section / no server / unreadable skill:** Skip (non-blocking).
 
 ### 5. Include in PR body
@@ -1396,13 +1309,12 @@ Present Codex output under a `CODEX (design):` header, merged with the checklist
 5. **Auto-fix all AUTO-FIX items.** Apply each fix. Output one line per fix:
    `[AUTO-FIXED] [file:line] Problem → what you did`
 
-6. **If ASK items remain,** present them in ONE AskUserQuestion:
-   - List each with number, severity, problem, recommended fix
-   - Per-item options: A) Fix  B) Skip
-   - Overall RECOMMENDATION
-   - If 3 or fewer ASK items, you may use individual AskUserQuestion calls instead
+6. **If ASK items remain,** auto-decide each one based on the recommended fix:
+   - For each ASK item, apply the recommended fix if the fix is safe and well-understood
+   - Log each decision: `[AUTO-DECISION] [file:line] Problem → applied recommended fix` or `[AUTO-DECISION] [file:line] Problem → skipped (ambiguous/risky)`
+   - Only skip items where the fix is genuinely ambiguous or could change behavior in unexpected ways
 
-7. **After all fixes (auto + user-approved):**
+7. **After all fixes (auto + auto-decided):**
    - If ANY fixes were applied: commit fixed files by name (`git add <fixed-files> && git commit -m "fix: pre-landing review fixes"`), then **STOP** and tell the user to run `/ship` again to re-test.
    - If no fixes applied (all ASK items skipped, or no issues found): continue to Step 4.
 
@@ -1435,24 +1347,18 @@ Before replying to any comment, run the **Escalation Detection** algorithm from 
 
 For each classified comment:
 
-**VALID & ACTIONABLE:** Use AskUserQuestion with:
-- The comment (file:line or [top-level] + body summary + permalink URL)
-- `RECOMMENDATION: Choose A because [one-line reason]`
-- Options: A) Fix now, B) Acknowledge and ship anyway, C) It's a false positive
-- If user chooses A: apply the fix, commit the fixed files (`git add <fixed-files> && git commit -m "fix: address Greptile review — <brief description>"`), reply using the **Fix reply template** from greptile-triage.md (include inline diff + explanation), and save to both per-project and global greptile-history (type: fix).
-- If user chooses C: reply using the **False Positive reply template** from greptile-triage.md (include evidence + suggested re-rank), save to both per-project and global greptile-history (type: fp).
+**VALID & ACTIONABLE:** Auto-fix valid actionable items directly:
+- Log: `[AUTO-FIX] Greptile comment [file:line] — fixing: [one-line reason]`
+- Apply the fix, commit the fixed files (`git add <fixed-files> && git commit -m "fix: address Greptile review — <brief description>"`), reply using the **Fix reply template** from greptile-triage.md (include inline diff + explanation), and save to both per-project and global greptile-history (type: fix).
+- If the fix is genuinely ambiguous or high-risk, skip it and log: `[AUTO-DECISION] Greptile comment [file:line] — skipped (ambiguous/high-risk)`. Save to greptile-history (type: skipped).
 
-**VALID BUT ALREADY FIXED:** Reply using the **Already Fixed reply template** from greptile-triage.md — no AskUserQuestion needed:
+**VALID BUT ALREADY FIXED:** Reply using the **Already Fixed reply template** from greptile-triage.md:
 - Include what was done and the fixing commit SHA
 - Save to both per-project and global greptile-history (type: already-fixed)
 
-**FALSE POSITIVE:** Use AskUserQuestion:
-- Show the comment and why you think it's wrong (file:line or [top-level] + body summary + permalink URL)
-- Options:
-  - A) Reply to Greptile explaining the false positive (recommended if clearly wrong)
-  - B) Fix it anyway (if trivial)
-  - C) Ignore silently
-- If user chooses A: reply using the **False Positive reply template** from greptile-triage.md (include evidence + suggested re-rank), save to both per-project and global greptile-history (type: fp)
+**FALSE POSITIVE:** Auto-dismiss false positives:
+- Log: `[AUTO-DISMISS] Greptile FP [file:line] — [reason it's wrong]`
+- Reply using the **False Positive reply template** from greptile-triage.md (include evidence + suggested re-rank), save to both per-project and global greptile-history (type: fp)
 
 **SUPPRESSED:** Skip silently — these are known false positives from previous triage.
 
@@ -1552,15 +1458,10 @@ codex review "IMPORTANT: Do NOT read or execute any files under ~/.claude/, ~/.a
 Set the Bash tool's `timeout` parameter to `300000` (5 minutes). Do NOT use the `timeout` shell command — it doesn't exist on macOS. Present output under `CODEX SAYS (code review):` header.
 Check for `[P1]` markers: found → `GATE: FAIL`, not found → `GATE: PASS`.
 
-If GATE is FAIL, use AskUserQuestion:
-```
-Codex found N critical issues in the diff.
+If GATE is FAIL, auto-choose: investigate and fix now (the complete option). Log:
+"Codex found N critical issues — investigating and fixing."
 
-A) Investigate and fix now (recommended)
-B) Continue — review will still complete
-```
-
-If A: address the findings. After fixing, re-run tests (Step 3) since code has changed. Re-run `codex review` to verify.
+Address the findings. After fixing, re-run tests (Step 3) since code has changed. Re-run `codex review` to verify.
 
 Read stderr for errors (same error handling as medium tier).
 
@@ -1669,11 +1570,7 @@ Read `.claude/skills/review/TODOS-format.md` for the canonical format reference.
 
 **1. Check if TODOS.md exists** in the repository root.
 
-**If TODOS.md does not exist:** Use AskUserQuestion:
-- Message: "GStack recommends maintaining a TODOS.md organized by skill/component, then priority (P0 at top through P4, then Completed at bottom). See TODOS-format.md for the full format. Would you like to create one?"
-- Options: A) Create it now, B) Skip for now
-- If A: Create `TODOS.md` with a skeleton (# TODOS heading + ## Completed section). Continue to step 3.
-- If B: Skip the rest of Step 5.5. Continue to Step 6.
+**If TODOS.md does not exist:** Auto-create it. Log: `[AUTO-DECISION] TODOS.md not found — creating with recommended structure.` Create `TODOS.md` with a skeleton (`# TODOS` heading + `## Completed` section). Continue to step 3.
 
 **2. Check structure and organization:**
 
@@ -1682,11 +1579,7 @@ Read TODOS.md and verify it follows the recommended structure:
 - Each item has `**Priority:**` field with P0-P4 value
 - A `## Completed` section at the bottom
 
-**If disorganized** (missing priority fields, no component groupings, no Completed section): Use AskUserQuestion:
-- Message: "TODOS.md doesn't follow the recommended structure (skill/component groupings, P0-P4 priority, Completed section). Would you like to reorganize it?"
-- Options: A) Reorganize now (recommended), B) Leave as-is
-- If A: Reorganize in-place following TODOS-format.md. Preserve all content — only restructure, never delete items.
-- If B: Continue to step 3 without restructuring.
+**If disorganized** (missing priority fields, no component groupings, no Completed section): Auto-fix the structure. Log: `[AUTO-FIX] TODOS.md disorganized — reorganizing to recommended structure.` Reorganize in-place following TODOS-format.md. Preserve all content — only restructure, never delete items. Continue to step 3.
 
 **3. Detect completed TODOs:**
 

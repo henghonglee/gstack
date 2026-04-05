@@ -78,7 +78,7 @@ or invoking other gstack skills, use the \`/gstack-\` prefix (e.g., \`/gstack-qa
 of \`/qa\`, \`/gstack-ship\` instead of \`/ship\`). Disk paths are unaffected — always use
 \`${ctx.paths.skillRoot}/[skill-name]/SKILL.md\` for reading skill files.
 
-If output shows \`UPGRADE_AVAILABLE <old> <new>\`: read \`${ctx.paths.skillRoot}/gstack-upgrade/SKILL.md\` and follow the "Inline upgrade flow" (auto-upgrade if configured, otherwise AskUserQuestion with 4 options, write snooze state if declined). If \`JUST_UPGRADED <from> <to>\`: tell user "Running gstack v{to} (just updated!)" and continue.`;
+If output shows \`UPGRADE_AVAILABLE <old> <new>\`: read \`${ctx.paths.skillRoot}/gstack-upgrade/SKILL.md\` and follow the "Inline upgrade flow" (auto-upgrade automatically). If \`JUST_UPGRADED <from> <to>\`: tell user "Running gstack v{to} (just updated!)" and continue.`;
 }
 
 function generateLakeIntro(): string {
@@ -97,33 +97,12 @@ Only run \`open\` if the user says yes. Always run \`touch\` to mark as seen. Th
 
 function generateTelemetryPrompt(ctx: TemplateContext): string {
   return `If \`TEL_PROMPTED\` is \`no\` AND \`LAKE_INTRO\` is \`yes\`: After the lake intro is handled,
-ask the user about telemetry. Use AskUserQuestion:
+auto-enable community telemetry (shares usage data — which skills you use, how long they
+take, crash info — with a stable device ID; no code, file paths, or repo names are ever sent).
 
-> Help gstack get better! Community mode shares usage data (which skills you use, how long
-> they take, crash info) with a stable device ID so we can track trends and fix bugs faster.
-> No code, file paths, or repo names are ever sent.
-> Change anytime with \`gstack-config set telemetry off\`.
-
-Options:
-- A) Help gstack get better! (recommended)
-- B) No thanks
-
-If A: run \`${ctx.paths.binDir}/gstack-config set telemetry community\`
-
-If B: ask a follow-up AskUserQuestion:
-
-> How about anonymous mode? We just learn that *someone* used gstack — no unique ID,
-> no way to connect sessions. Just a counter that helps us know if anyone's out there.
-
-Options:
-- A) Sure, anonymous is fine
-- B) No thanks, fully off
-
-If B→A: run \`${ctx.paths.binDir}/gstack-config set telemetry anonymous\`
-If B→B: run \`${ctx.paths.binDir}/gstack-config set telemetry off\`
-
-Always run:
+Run:
 \`\`\`bash
+${ctx.paths.binDir}/gstack-config set telemetry community
 touch ~/.gstack/.telemetry-prompted
 \`\`\`
 
@@ -132,21 +111,11 @@ This only happens once. If \`TEL_PROMPTED\` is \`yes\`, skip this entirely.`;
 
 function generateProactivePrompt(ctx: TemplateContext): string {
   return `If \`PROACTIVE_PROMPTED\` is \`no\` AND \`TEL_PROMPTED\` is \`yes\`: After telemetry is handled,
-ask the user about proactive behavior. Use AskUserQuestion:
+auto-enable proactive behavior (gstack proactively suggests skills based on context).
 
-> gstack can proactively figure out when you might need a skill while you work —
-> like suggesting /qa when you say "does this work?" or /investigate when you hit
-> a bug. We recommend keeping this on — it speeds up every part of your workflow.
-
-Options:
-- A) Keep it on (recommended)
-- B) Turn it off — I'll type /commands myself
-
-If A: run \`${ctx.paths.binDir}/gstack-config set proactive true\`
-If B: run \`${ctx.paths.binDir}/gstack-config set proactive false\`
-
-Always run:
+Run:
 \`\`\`bash
+${ctx.paths.binDir}/gstack-config set proactive true
 touch ~/.gstack/.proactive-prompted
 \`\`\`
 
@@ -154,17 +123,12 @@ This only happens once. If \`PROACTIVE_PROMPTED\` is \`yes\`, skip this entirely
 }
 
 function generateAskUserFormat(_ctx: TemplateContext): string {
-  return `## AskUserQuestion Format
+  return `## Non-Interactive Mode
 
-**ALWAYS follow this structure for every AskUserQuestion call:**
-1. **Re-ground:** State the project, the current branch (use the \`_BRANCH\` value printed by the preamble — NOT any branch from conversation history or gitStatus), and the current plan/task. (1-2 sentences)
-2. **Simplify:** Explain the problem in plain English a smart 16-year-old could follow. No raw function names, no internal jargon, no implementation details. Use concrete examples and analogies. Say what it DOES, not what it's called.
-3. **Recommend:** \`RECOMMENDATION: Choose [X] because [one-line reason]\` — always prefer the complete option over shortcuts (see Completeness Principle). Include \`Completeness: X/10\` for each option. Calibration: 10 = complete implementation (all edge cases, full coverage), 7 = covers happy path but skips some edges, 3 = shortcut that defers significant work. If both options are 8+, pick the higher; if one is ≤5, flag it.
-4. **Options:** Lettered options: \`A) ... B) ... C) ...\` — when an option involves effort, show both scales: \`(human: ~X / CC: ~Y)\`
-
-Assume the user hasn't looked at this window in 20 minutes and doesn't have the code open. If you'd need to read the source to understand your own explanation, it's too complex.
-
-Per-skill instructions may add additional formatting rules on top of this baseline.`;
+**NEVER ask the user questions.** Always proceed with your best judgment based on
+available context. When facing a decision point, choose the RECOMMENDED option
+automatically (prefer the complete option over shortcuts — see Completeness Principle).
+Log the decision you made and why in your output so the user can review after the fact.`;
 }
 
 function generateCompletenessSection(): string {
@@ -189,7 +153,7 @@ function generateRepoModeSection(): string {
 
 \`REPO_MODE\` controls how to handle issues outside your branch:
 - **\`solo\`** — You own everything. Investigate and offer to fix proactively.
-- **\`collaborative\`** / **\`unknown\`** — Flag via AskUserQuestion, don't fix (may be someone else's).
+- **\`collaborative\`** / **\`unknown\`** — Flag in output, don't fix (may be someone else's).
 
 Always flag anything that looks wrong — one sentence, what you noticed and its impact.`;
 }
@@ -225,34 +189,19 @@ Check \`REPO_MODE\` from the preamble output.
 
 **If REPO_MODE is \`solo\`:**
 
-Use AskUserQuestion:
+Auto-choose: Investigate and fix now (the complete option). Log:
 
-> These test failures appear pre-existing (not caused by your branch changes):
->
+> Pre-existing test failures detected (not caused by your branch changes):
 > [list each failure with file:line and brief error description]
->
-> Since this is a solo repo, you're the only one who will fix these.
->
-> RECOMMENDATION: Choose A — fix now while the context is fresh. Completeness: 9/10.
-> A) Investigate and fix now (human: ~2-4h / CC: ~15min) — Completeness: 10/10
-> B) Add as P0 TODO — fix after this branch lands — Completeness: 7/10
-> C) Skip — I know about this, ship anyway — Completeness: 3/10
+> Auto-fixing now — solo repo, you're the only one who will fix these.
 
 **If REPO_MODE is \`collaborative\` or \`unknown\`:**
 
-Use AskUserQuestion:
+Auto-choose: Blame + assign GitHub issue to the author. Log:
 
-> These test failures appear pre-existing (not caused by your branch changes):
->
+> Pre-existing test failures detected (not caused by your branch changes):
 > [list each failure with file:line and brief error description]
->
-> This is a collaborative repo — these may be someone else's responsibility.
->
-> RECOMMENDATION: Choose B — assign it to whoever broke it so the right person fixes it. Completeness: 9/10.
-> A) Investigate and fix now anyway — Completeness: 10/10
-> B) Blame + assign GitHub issue to the author — Completeness: 9/10
-> C) Add as P0 TODO — Completeness: 7/10
-> D) Skip — ship anyway — Completeness: 3/10
+> This is a collaborative repo — assigning to the likely author.
 
 ### Step T4: Execute the chosen action
 
@@ -489,7 +438,7 @@ Avoid filler, throat-clearing, generic optimism, founder cosplay, and unsupporte
 // Preamble Composition (tier → sections)
 // ─────────────────────────────────────────────
 // T1: core + upgrade + lake + telemetry + voice(trimmed) + contributor + completion
-// T2: T1 + voice(full) + ask + completeness
+// T2: T1 + voice(full) + non-interactive + completeness
 // T3: T2 + repo-mode + search
 // T4: (same as T3 — TEST_FAILURE_TRIAGE is a separate {{}} placeholder, not preamble)
 //

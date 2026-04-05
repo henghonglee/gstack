@@ -15,7 +15,6 @@ allowed-tools:
   - Write
   - Grep
   - Glob
-  - AskUserQuestion
   - Bash
   - WebSearch
 ---
@@ -76,7 +75,7 @@ or invoking other gstack skills, use the `/gstack-` prefix (e.g., `/gstack-qa` i
 of `/qa`, `/gstack-ship` instead of `/ship`). Disk paths are unaffected — always use
 `~/.claude/skills/gstack/[skill-name]/SKILL.md` for reading skill files.
 
-If output shows `UPGRADE_AVAILABLE <old> <new>`: read `~/.claude/skills/gstack/gstack-upgrade/SKILL.md` and follow the "Inline upgrade flow" (auto-upgrade if configured, otherwise AskUserQuestion with 4 options, write snooze state if declined). If `JUST_UPGRADED <from> <to>`: tell user "Running gstack v{to} (just updated!)" and continue.
+If output shows `UPGRADE_AVAILABLE <old> <new>`: read `~/.claude/skills/gstack/gstack-upgrade/SKILL.md` and follow the "Inline upgrade flow" (auto-upgrade automatically). If `JUST_UPGRADED <from> <to>`: tell user "Running gstack v{to} (just updated!)" and continue.
 
 If `LAKE_INTRO` is `no`: Before continuing, introduce the Completeness Principle.
 Tell the user: "gstack follows the **Boil the Lake** principle — always do the complete
@@ -91,54 +90,23 @@ touch ~/.gstack/.completeness-intro-seen
 Only run `open` if the user says yes. Always run `touch` to mark as seen. This only happens once.
 
 If `TEL_PROMPTED` is `no` AND `LAKE_INTRO` is `yes`: After the lake intro is handled,
-ask the user about telemetry. Use AskUserQuestion:
+auto-enable community telemetry (shares usage data — which skills you use, how long they
+take, crash info — with a stable device ID; no code, file paths, or repo names are ever sent).
 
-> Help gstack get better! Community mode shares usage data (which skills you use, how long
-> they take, crash info) with a stable device ID so we can track trends and fix bugs faster.
-> No code, file paths, or repo names are ever sent.
-> Change anytime with `gstack-config set telemetry off`.
-
-Options:
-- A) Help gstack get better! (recommended)
-- B) No thanks
-
-If A: run `~/.claude/skills/gstack/bin/gstack-config set telemetry community`
-
-If B: ask a follow-up AskUserQuestion:
-
-> How about anonymous mode? We just learn that *someone* used gstack — no unique ID,
-> no way to connect sessions. Just a counter that helps us know if anyone's out there.
-
-Options:
-- A) Sure, anonymous is fine
-- B) No thanks, fully off
-
-If B→A: run `~/.claude/skills/gstack/bin/gstack-config set telemetry anonymous`
-If B→B: run `~/.claude/skills/gstack/bin/gstack-config set telemetry off`
-
-Always run:
+Run:
 ```bash
+~/.claude/skills/gstack/bin/gstack-config set telemetry community
 touch ~/.gstack/.telemetry-prompted
 ```
 
 This only happens once. If `TEL_PROMPTED` is `yes`, skip this entirely.
 
 If `PROACTIVE_PROMPTED` is `no` AND `TEL_PROMPTED` is `yes`: After telemetry is handled,
-ask the user about proactive behavior. Use AskUserQuestion:
+auto-enable proactive behavior (gstack proactively suggests skills based on context).
 
-> gstack can proactively figure out when you might need a skill while you work —
-> like suggesting /qa when you say "does this work?" or /investigate when you hit
-> a bug. We recommend keeping this on — it speeds up every part of your workflow.
-
-Options:
-- A) Keep it on (recommended)
-- B) Turn it off — I'll type /commands myself
-
-If A: run `~/.claude/skills/gstack/bin/gstack-config set proactive true`
-If B: run `~/.claude/skills/gstack/bin/gstack-config set proactive false`
-
-Always run:
+Run:
 ```bash
+~/.claude/skills/gstack/bin/gstack-config set proactive true
 touch ~/.gstack/.proactive-prompted
 ```
 
@@ -190,17 +158,12 @@ Avoid filler, throat-clearing, generic optimism, founder cosplay, and unsupporte
 
 **Final test:** does this sound like a real cross-functional builder who wants to help someone make something people want, ship it, and make it actually work?
 
-## AskUserQuestion Format
+## Non-Interactive Mode
 
-**ALWAYS follow this structure for every AskUserQuestion call:**
-1. **Re-ground:** State the project, the current branch (use the `_BRANCH` value printed by the preamble — NOT any branch from conversation history or gitStatus), and the current plan/task. (1-2 sentences)
-2. **Simplify:** Explain the problem in plain English a smart 16-year-old could follow. No raw function names, no internal jargon, no implementation details. Use concrete examples and analogies. Say what it DOES, not what it's called.
-3. **Recommend:** `RECOMMENDATION: Choose [X] because [one-line reason]` — always prefer the complete option over shortcuts (see Completeness Principle). Include `Completeness: X/10` for each option. Calibration: 10 = complete implementation (all edge cases, full coverage), 7 = covers happy path but skips some edges, 3 = shortcut that defers significant work. If both options are 8+, pick the higher; if one is ≤5, flag it.
-4. **Options:** Lettered options: `A) ... B) ... C) ...` — when an option involves effort, show both scales: `(human: ~X / CC: ~Y)`
-
-Assume the user hasn't looked at this window in 20 minutes and doesn't have the code open. If you'd need to read the source to understand your own explanation, it's too complex.
-
-Per-skill instructions may add additional formatting rules on top of this baseline.
+**NEVER ask the user questions.** Always proceed with your best judgment based on
+available context. When facing a decision point, choose the RECOMMENDED option
+automatically (prefer the complete option over shortcuts — see Completeness Principle).
+Log the decision you made and why in your output so the user can review after the fact.
 
 ## Completeness Principle — Boil the Lake
 
@@ -221,7 +184,7 @@ Include `Completeness: X/10` for each option (10=all edge cases, 7=happy path, 3
 
 `REPO_MODE` controls how to handle issues outside your branch:
 - **`solo`** — You own everything. Investigate and offer to fix proactively.
-- **`collaborative`** / **`unknown`** — Flag via AskUserQuestion, don't fix (may be someone else's).
+- **`collaborative`** / **`unknown`** — Flag in output, don't fix (may be someone else's).
 
 Always flag anything that looks wrong — one sentence, what you noticed and its impact.
 
@@ -407,21 +370,12 @@ If a design doc exists, read it. Use it as the source of truth for the problem s
 When the design doc check above prints "No design doc found," offer the prerequisite
 skill before proceeding.
 
-Say to the user via AskUserQuestion:
+Auto-run the prerequisite skill when no design doc is found. Log:
 
-> "No design doc found for this branch. `/office-hours` produces a structured problem
-> statement, premise challenge, and explored alternatives — it gives this review much
-> sharper input to work with. Takes about 10 minutes. The design doc is per-feature,
-> not per-product — it captures the thinking behind this specific change."
+> "No design doc found for this branch. Running /office-hours to produce a structured
+> problem statement, premise challenge, and explored alternatives."
 
-Options:
-- A) Run /office-hours now (we'll pick up the review right after)
-- B) Skip — proceed with standard review
-
-If they skip: "No worries — standard review. If you ever want sharper input, try
-/office-hours first next time." Then proceed normally. Do not re-offer later in the session.
-
-If they choose A:
+Proceed to run /office-hours inline:
 
 Say: "Running /office-hours inline. Once the design doc is ready, I'll pick up
 the review right where we left off."
@@ -431,7 +385,7 @@ Read the office-hours skill file from disk using the Read tool:
 
 Follow it inline, **skipping these sections** (already handled by the parent skill):
 - Preamble (run first)
-- AskUserQuestion Format
+- Non-Interactive Mode
 - Completeness Principle — Boil the Lake
 - Search Before Building
 - Contributor Mode
@@ -477,7 +431,7 @@ Before reviewing anything, answer these questions:
    - How will users download or install it (GitHub Releases, package manager, container registry)?
    If the plan defers distribution, flag it explicitly in the "NOT in scope" section — don't let it silently drop.
 
-If the complexity check triggers (8+ files or 2+ new classes/services), proactively recommend scope reduction via AskUserQuestion — explain what's overbuilt, propose a minimal version that achieves the core goal, and ask whether to reduce or proceed as-is. If the complexity check does not trigger, present your Step 0 findings and proceed directly to Section 1.
+If the complexity check triggers (8+ files or 2+ new classes/services), proactively auto-recommend scope reduction — explain what's overbuilt, propose a minimal version that achieves the core goal, and log the decision. If the complexity check does not trigger, present your Step 0 findings and proceed directly to Section 1.
 
 Always work through the full interactive review: one section at a time (Architecture → Code Quality → Tests → Performance) with at most 8 top issues per section.
 
@@ -496,7 +450,7 @@ Evaluate:
 * For each new codepath or integration point, describe one realistic production failure scenario and whether the plan accounts for it.
 * **Distribution architecture:** If this introduces a new artifact (binary, package, container), how does it get built, published, and updated? Is the CI/CD pipeline part of the plan or deferred?
 
-**STOP.** For each issue found in this section, call AskUserQuestion individually. One issue per call. Present options, state your recommendation, explain WHY. Do NOT batch multiple issues into one AskUserQuestion. Only proceed to the next section after ALL issues in this section are resolved.
+Auto-decide each issue individually. Log recommendation + WHY for each. If no issues or fix is obvious, state what you'll do and move on.
 
 ### 2. Code quality review
 Evaluate:
@@ -507,7 +461,7 @@ Evaluate:
 * Areas that are over-engineered or under-engineered relative to my preferences.
 * Existing ASCII diagrams in touched files — are they still accurate after this change?
 
-**STOP.** For each issue found in this section, call AskUserQuestion individually. One issue per call. Present options, state your recommendation, explain WHY. Do NOT batch multiple issues into one AskUserQuestion. Only proceed to the next section after ALL issues in this section are resolved.
+Auto-decide each issue individually. Log recommendation + WHY for each. If no issues or fix is obvious, state what you'll do and move on.
 
 ### 3. Test review
 
@@ -609,7 +563,7 @@ When checking each branch, also determine whether a unit test or E2E/integration
 
 ### REGRESSION RULE (mandatory)
 
-**IRON RULE:** When the coverage audit identifies a REGRESSION — code that previously worked but the diff broke — a regression test is added to the plan as a critical requirement. No AskUserQuestion. No skipping. Regressions are the highest-priority test because they prove something broke.
+**IRON RULE:** When the coverage audit identifies a REGRESSION — code that previously worked but the diff broke — a regression test is added to the plan as a critical requirement. No skipping. Regressions are the highest-priority test because they prove something broke.
 
 A regression is when:
 - The diff modifies existing behavior (not new code)
@@ -709,9 +663,9 @@ Repo: {owner/repo}
 
 This file is consumed by `/qa` and `/qa-only` as primary test input. Include only the information that helps a QA tester know **what to test and where** — not implementation details.
 
-For LLM/prompt changes: check the "Prompt/LLM changes" file patterns listed in CLAUDE.md. If this plan touches ANY of those patterns, state which eval suites must be run, which cases should be added, and what baselines to compare against. Then use AskUserQuestion to confirm the eval scope with the user.
+For LLM/prompt changes: check the "Prompt/LLM changes" file patterns listed in CLAUDE.md. If this plan touches ANY of those patterns, state which eval suites must be run, which cases should be added, and what baselines to compare against. Then auto-decide the eval scope and log the decision.
 
-**STOP.** For each issue found in this section, call AskUserQuestion individually. One issue per call. Present options, state your recommendation, explain WHY. Do NOT batch multiple issues into one AskUserQuestion. Only proceed to the next section after ALL issues in this section are resolved.
+Auto-decide each issue individually. Log recommendation + WHY for each. If no issues or fix is obvious, state what you'll do and move on.
 
 ### 4. Performance review
 Evaluate:
@@ -720,7 +674,7 @@ Evaluate:
 * Caching opportunities.
 * Slow or high-complexity code paths.
 
-**STOP.** For each issue found in this section, call AskUserQuestion individually. One issue per call. Present options, state your recommendation, explain WHY. Do NOT batch multiple issues into one AskUserQuestion. Only proceed to the next section after ALL issues in this section are resolved.
+Auto-decide each issue individually. Log recommendation + WHY for each. If no issues or fix is obvious, state what you'll do and move on.
 
 ## Outside Voice — Independent Plan Challenge (optional, recommended)
 
@@ -734,24 +688,9 @@ thorough review.
 which codex 2>/dev/null && echo "CODEX_AVAILABLE" || echo "CODEX_NOT_AVAILABLE"
 ```
 
-Use AskUserQuestion:
+Auto-run the outside voice (the complete option). Log: "Running outside voice — independent plan challenge for structural blind spots."
 
-> "All review sections are complete. Want an outside voice? A different AI system can
-> give a brutally honest, independent challenge of this plan — logical gaps, feasibility
-> risks, and blind spots that are hard to catch from inside the review. Takes about 2
-> minutes."
->
-> RECOMMENDATION: Choose A — an independent second opinion catches structural blind
-> spots. Two different AI models agreeing on a plan is stronger signal than one model's
-> thorough review. Completeness: A=9/10, B=7/10.
-
-Options:
-- A) Get the outside voice (recommended)
-- B) Skip — proceed to outputs
-
-**If B:** Print "Skipping outside voice." and continue to the next section.
-
-**If A:** Construct the plan review prompt. Read the plan file being reviewed (the file
+Construct the plan review prompt. Read the plan file being reviewed (the file
 the user pointed this review at, or the branch diff scope). If a CEO plan document
 was written in Step 0D-POST, read that too — it contains the scope decisions and vision.
 
@@ -821,25 +760,12 @@ CROSS-MODEL TENSION:
   State what context you might be missing that would change the answer.]
 ```
 
-**User Sovereignty:** Do NOT auto-incorporate outside voice recommendations into the plan.
-Present each tension point to the user. The user decides. Cross-model agreement is a
-strong signal — present it as such — but it is NOT permission to act. You may state
-which argument you find more compelling, but you MUST NOT apply the change without
-explicit user approval.
-
-For each substantive tension point, use AskUserQuestion:
+For each substantive tension point, auto-keep the current approach (user's original
+judgment takes priority over outside voice disagreements). Log each tension point in
+output so the user can review:
 
 > "Cross-model disagreement on [topic]. The review found [X] but the outside voice
-> argues [Y]. [One sentence on what context you might be missing.]"
-
-Options:
-- A) Accept the outside voice's recommendation (I'll apply this change)
-- B) Keep the current approach (reject the outside voice)
-- C) Investigate further before deciding
-- D) Add to TODOS.md for later
-
-Wait for the user's response. Do NOT default to accepting because you agree with the
-outside voice. If the user chooses B, the current approach stands — do not re-argue.
+> argues [Y]. Keeping current approach — user's judgment takes priority."
 
 If no tension points exist, note: "No cross-model tension — both reviewers agree."
 
@@ -858,20 +784,19 @@ SOURCE = "codex" if Codex ran, "claude" if subagent ran.
 ### Outside Voice Integration Rule
 
 Outside voice findings are INFORMATIONAL until the user explicitly approves each one.
-Do NOT incorporate outside voice recommendations into the plan without presenting each
-finding via AskUserQuestion and getting explicit approval. This applies even when you
-agree with the outside voice. Cross-model consensus is a strong signal — present it as
-such — but the user makes the decision.
+Do NOT incorporate outside voice recommendations into the plan without logging each
+finding and your decision. Cross-model consensus is a strong signal — note it as
+such — and auto-decide based on the strength of the recommendation.
 
 ## CRITICAL RULE — How to ask questions
-Follow the AskUserQuestion format from the Preamble above. Additional rules for plan reviews:
-* **One issue = one AskUserQuestion call.** Never combine multiple issues into one question.
+Non-Interactive Decision Mode. Additional rules for plan reviews:
+* **One issue = one logged decision.** Never combine multiple issues.
 * Describe the problem concretely, with file and line references.
 * Present 2-3 options, including "do nothing" where that's reasonable.
 * For each option, specify in one line: effort (human: ~X / CC: ~Y), risk, and maintenance burden. If the complete option is only marginally more effort than the shortcut with CC, recommend the complete option.
 * **Map the reasoning to my engineering preferences above.** One sentence connecting your recommendation to a specific preference (DRY, explicit > clever, minimal diff, etc.).
 * Label with issue NUMBER + option LETTER (e.g., "3A", "3B").
-* **Escape hatch:** If a section has no issues, say so and move on. If an issue has an obvious fix with no real alternatives, state what you'll do and move on — don't waste a question on it. Only use AskUserQuestion when there is a genuine decision with meaningful tradeoffs.
+* **Auto-decide:** State your recommendation and proceed. If a section has no issues, say so and move on. If an issue has an obvious fix with no real alternatives, state what you'll do and move on.
 
 ## Required outputs
 
@@ -882,7 +807,7 @@ Every plan review MUST produce a "NOT in scope" section listing work that was co
 List existing code/flows that already partially solve sub-problems in this plan, and whether the plan reuses them or unnecessarily rebuilds them.
 
 ### TODOS.md updates
-After all review sections are complete, present each potential TODO as its own individual AskUserQuestion. Never batch TODOs — one per question. Never silently skip this step. Follow the format in `.claude/skills/review/TODOS-format.md`.
+After all review sections are complete, auto-decide each potential TODO individually. Never batch TODOs. Never silently skip this step. Follow the format in `.claude/skills/review/TODOS-format.md`.
 
 For each TODO, describe:
 * **What:** One-line description of the work.
@@ -1111,10 +1036,10 @@ After displaying the Review Readiness Dashboard, check if additional reviews wou
 
 **If no additional reviews are needed** (or `skip_eng_review` is `true` in the dashboard config, meaning this eng review was optional): state "All relevant reviews complete. Run /ship when ready."
 
-Use AskUserQuestion with only the applicable options:
+Auto-proceed to the next step. Include only applicable options in your log:
 - **A)** Run /plan-design-review (only if UI scope detected and no design review exists)
 - **B)** Run /plan-ceo-review (only if significant product change and no CEO review exists)
 - **C)** Ready to implement — run /ship when done
 
 ## Unresolved decisions
-If the user does not respond to an AskUserQuestion or interrupts to move on, note which decisions were left unresolved. At the end of the review, list these as "Unresolved decisions that may bite you later" — never silently default to an option.
+Log all decisions made automatically. Note any decisions where confidence was low as "Low-confidence decisions that may need revisiting."

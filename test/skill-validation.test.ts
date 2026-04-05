@@ -542,10 +542,10 @@ describe('TODOS-format.md reference consistency', () => {
 // --- v0.4.1 feature coverage: RECOMMENDATION format, session awareness, enum completeness ---
 
 describe('v0.4.1 preamble features', () => {
-  // Tier 1 skills have core preamble only (no AskUserQuestion format)
+  // Tier 1 skills have core preamble only (no Non-Interactive Mode section)
   const tier1Skills = ['SKILL.md', 'browse/SKILL.md', 'setup-browser-cookies/SKILL.md', 'benchmark/SKILL.md'];
 
-  // Tier 2+ skills have AskUserQuestion format with RECOMMENDATION
+  // Tier 2+ skills have Non-Interactive Mode with RECOMMENDATION
   const tier2PlusSkills = [
     'qa/SKILL.md', 'qa-only/SKILL.md',
     'ship/SKILL.md', 'review/SKILL.md',
@@ -565,10 +565,10 @@ describe('v0.4.1 preamble features', () => {
   const skillsWithPreamble = [...tier1Skills, ...tier2PlusSkills];
 
   for (const skill of tier2PlusSkills) {
-    test(`${skill} contains RECOMMENDATION format`, () => {
+    test(`${skill} contains non-interactive mode`, () => {
       const content = fs.readFileSync(path.join(ROOT, skill), 'utf-8');
-      expect(content).toContain('RECOMMENDATION: Choose');
-      expect(content).toContain('AskUserQuestion');
+      expect(content).toContain('RECOMMENDED option');
+      expect(content).toContain('Non-Interactive Mode');
     });
   }
 
@@ -606,9 +606,9 @@ describe('office-hours skill structure', () => {
     test(`contains ${section}`, () => expect(content).toContain(section));
   }
 
-  // Mode detection question
-  test('contains explicit mode detection question', () => {
-    expect(content).toContain("what's your goal");
+  // Mode detection
+  test('contains mode detection logic', () => {
+    expect(content).toContain("Determine the user's goal");
   });
 
   // Six forcing questions (startup mode)

@@ -238,9 +238,9 @@ Per the contributor mode instructions, file a field report to ${logsDir}/browse-
     // Add a remote so the agent can derive a project name
     run('git', ['remote', 'add', 'origin', 'https://github.com/acme/billing-app.git']);
 
-    // Extract AskUserQuestion format instructions from generated SKILL.md
+    // Extract Non-Interactive Mode instructions from generated SKILL.md
     const skillMd = fs.readFileSync(path.join(ROOT, 'SKILL.md'), 'utf-8');
-    const aqStart = skillMd.indexOf('## AskUserQuestion Format');
+    const aqStart = skillMd.indexOf('## Non-Interactive Mode');
     const aqEnd = skillMd.indexOf('\n## ', aqStart + 1);
     const aqBlock = skillMd.slice(aqStart, aqEnd > 0 ? aqEnd : undefined);
 
@@ -255,7 +255,7 @@ You are on branch feature/add-payments in the billing-app project. You were revi
 
 You've hit a decision point: the plan doesn't specify whether to use Stripe Checkout (hosted) or Stripe Elements (embedded). You need to ask the user which approach to use.
 
-Since this is non-interactive, DO NOT actually call AskUserQuestion. Instead, write the EXACT text you would display to the user (the full AskUserQuestion content) to the file: ${outputPath}
+Since this is non-interactive, write the EXACT text you would display to the user (the full question content) to the file: ${outputPath}
 
 Remember: _SESSIONS=4, so ELI16 mode is active. The user is juggling multiple windows and may not remember what this conversation is about. Re-ground them.`,
       workingDirectory: sessionDir,

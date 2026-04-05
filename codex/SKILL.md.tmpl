@@ -14,7 +14,6 @@ allowed-tools:
   - Write
   - Glob
   - Grep
-  - AskUserQuestion
 ---
 
 {{PREAMBLE}}
@@ -52,13 +51,7 @@ Parse the user's input to determine which mode to run:
 3. `/codex` with no arguments — **Auto-detect:**
    - Check for a diff (with fallback if origin isn't available):
      `git diff origin/<base> --stat 2>/dev/null | tail -1 || git diff <base> --stat 2>/dev/null | tail -1`
-   - If a diff exists, use AskUserQuestion:
-     ```
-     Codex detected changes against the base branch. What should it do?
-     A) Review the diff (code review with pass/fail gate)
-     B) Challenge the diff (adversarial — try to break it)
-     C) Something else — I'll provide a prompt
-     ```
+   - If a diff exists, auto-decide: run **Review mode** (code review with pass/fail gate) as the default action. Log: `[AUTO-DECISION] Diff detected against base branch — running code review mode.`
    - If no diff, check for plan files scoped to the current project:
      `ls -t ~/.claude/plans/*.md 2>/dev/null | xargs grep -l "$(basename $(pwd))" 2>/dev/null | head -1`
      If no project-scoped match, fall back to: `ls -t ~/.claude/plans/*.md 2>/dev/null | head -1`
@@ -249,12 +242,7 @@ Ask Codex anything about the codebase. Supports session continuity for follow-up
 cat .context/codex-session-id 2>/dev/null || echo "NO_SESSION"
 ```
 
-If a session file exists (not `NO_SESSION`), use AskUserQuestion:
-```
-You have an active Codex conversation from earlier. Continue it or start fresh?
-A) Continue the conversation (Codex remembers the prior context)
-B) Start a new conversation
-```
+If a session file exists (not `NO_SESSION`), auto-decide: continue the existing conversation for context continuity. Log: `[AUTO-DECISION] Existing Codex session found — continuing previous conversation.`
 
 2. Create temp files:
 ```bash

@@ -15,7 +15,6 @@ allowed-tools:
   - Edit
   - Grep
   - Glob
-  - AskUserQuestion
 ---
 <!-- AUTO-GENERATED from SKILL.md.tmpl — do not edit directly -->
 <!-- Regenerate: bun run gen:skill-docs -->
@@ -74,7 +73,7 @@ or invoking other gstack skills, use the `/gstack-` prefix (e.g., `/gstack-qa` i
 of `/qa`, `/gstack-ship` instead of `/ship`). Disk paths are unaffected — always use
 `~/.claude/skills/gstack/[skill-name]/SKILL.md` for reading skill files.
 
-If output shows `UPGRADE_AVAILABLE <old> <new>`: read `~/.claude/skills/gstack/gstack-upgrade/SKILL.md` and follow the "Inline upgrade flow" (auto-upgrade if configured, otherwise AskUserQuestion with 4 options, write snooze state if declined). If `JUST_UPGRADED <from> <to>`: tell user "Running gstack v{to} (just updated!)" and continue.
+If output shows `UPGRADE_AVAILABLE <old> <new>`: read `~/.claude/skills/gstack/gstack-upgrade/SKILL.md` and follow the "Inline upgrade flow" (auto-upgrade automatically). If `JUST_UPGRADED <from> <to>`: tell user "Running gstack v{to} (just updated!)" and continue.
 
 If `LAKE_INTRO` is `no`: Before continuing, introduce the Completeness Principle.
 Tell the user: "gstack follows the **Boil the Lake** principle — always do the complete
@@ -89,54 +88,23 @@ touch ~/.gstack/.completeness-intro-seen
 Only run `open` if the user says yes. Always run `touch` to mark as seen. This only happens once.
 
 If `TEL_PROMPTED` is `no` AND `LAKE_INTRO` is `yes`: After the lake intro is handled,
-ask the user about telemetry. Use AskUserQuestion:
+auto-enable community telemetry (shares usage data — which skills you use, how long they
+take, crash info — with a stable device ID; no code, file paths, or repo names are ever sent).
 
-> Help gstack get better! Community mode shares usage data (which skills you use, how long
-> they take, crash info) with a stable device ID so we can track trends and fix bugs faster.
-> No code, file paths, or repo names are ever sent.
-> Change anytime with `gstack-config set telemetry off`.
-
-Options:
-- A) Help gstack get better! (recommended)
-- B) No thanks
-
-If A: run `~/.claude/skills/gstack/bin/gstack-config set telemetry community`
-
-If B: ask a follow-up AskUserQuestion:
-
-> How about anonymous mode? We just learn that *someone* used gstack — no unique ID,
-> no way to connect sessions. Just a counter that helps us know if anyone's out there.
-
-Options:
-- A) Sure, anonymous is fine
-- B) No thanks, fully off
-
-If B→A: run `~/.claude/skills/gstack/bin/gstack-config set telemetry anonymous`
-If B→B: run `~/.claude/skills/gstack/bin/gstack-config set telemetry off`
-
-Always run:
+Run:
 ```bash
+~/.claude/skills/gstack/bin/gstack-config set telemetry community
 touch ~/.gstack/.telemetry-prompted
 ```
 
 This only happens once. If `TEL_PROMPTED` is `yes`, skip this entirely.
 
 If `PROACTIVE_PROMPTED` is `no` AND `TEL_PROMPTED` is `yes`: After telemetry is handled,
-ask the user about proactive behavior. Use AskUserQuestion:
+auto-enable proactive behavior (gstack proactively suggests skills based on context).
 
-> gstack can proactively figure out when you might need a skill while you work —
-> like suggesting /qa when you say "does this work?" or /investigate when you hit
-> a bug. We recommend keeping this on — it speeds up every part of your workflow.
-
-Options:
-- A) Keep it on (recommended)
-- B) Turn it off — I'll type /commands myself
-
-If A: run `~/.claude/skills/gstack/bin/gstack-config set proactive true`
-If B: run `~/.claude/skills/gstack/bin/gstack-config set proactive false`
-
-Always run:
+Run:
 ```bash
+~/.claude/skills/gstack/bin/gstack-config set proactive true
 touch ~/.gstack/.proactive-prompted
 ```
 
@@ -188,17 +156,12 @@ Avoid filler, throat-clearing, generic optimism, founder cosplay, and unsupporte
 
 **Final test:** does this sound like a real cross-functional builder who wants to help someone make something people want, ship it, and make it actually work?
 
-## AskUserQuestion Format
+## Non-Interactive Mode
 
-**ALWAYS follow this structure for every AskUserQuestion call:**
-1. **Re-ground:** State the project, the current branch (use the `_BRANCH` value printed by the preamble — NOT any branch from conversation history or gitStatus), and the current plan/task. (1-2 sentences)
-2. **Simplify:** Explain the problem in plain English a smart 16-year-old could follow. No raw function names, no internal jargon, no implementation details. Use concrete examples and analogies. Say what it DOES, not what it's called.
-3. **Recommend:** `RECOMMENDATION: Choose [X] because [one-line reason]` — always prefer the complete option over shortcuts (see Completeness Principle). Include `Completeness: X/10` for each option. Calibration: 10 = complete implementation (all edge cases, full coverage), 7 = covers happy path but skips some edges, 3 = shortcut that defers significant work. If both options are 8+, pick the higher; if one is ≤5, flag it.
-4. **Options:** Lettered options: `A) ... B) ... C) ...` — when an option involves effort, show both scales: `(human: ~X / CC: ~Y)`
-
-Assume the user hasn't looked at this window in 20 minutes and doesn't have the code open. If you'd need to read the source to understand your own explanation, it's too complex.
-
-Per-skill instructions may add additional formatting rules on top of this baseline.
+**NEVER ask the user questions.** Always proceed with your best judgment based on
+available context. When facing a decision point, choose the RECOMMENDED option
+automatically (prefer the complete option over shortcuts — see Completeness Principle).
+Log the decision you made and why in your output so the user can review after the fact.
 
 ## Completeness Principle — Boil the Lake
 
@@ -392,7 +355,7 @@ subjective decisions.
 
 **NEVER do:**
 - Overwrite, replace, or regenerate CHANGELOG entries — polish wording only, preserve all content
-- Bump VERSION without asking — always use AskUserQuestion for version changes
+- Bump VERSION without logging the decision — always log version change decisions prominently
 - Use `Write` tool on CHANGELOG.md — always use `Edit` with exact `old_string` matches
 
 ---
@@ -491,13 +454,10 @@ from 9 to 10."
 
 ## Step 4: Ask About Risky/Questionable Changes
 
-For each risky or questionable update identified in Step 2, use AskUserQuestion with:
-- Context: project name, branch, which doc file, what we're reviewing
-- The specific documentation decision
-- `RECOMMENDATION: Choose [X] because [one-line reason]`
-- Options including C) Skip — leave as-is
-
-Apply approved changes immediately after each answer.
+For each risky or questionable update identified in Step 2, auto-decide based on risk:
+- **Low risk** (adding a missing cross-reference, updating a stale path): auto-fix and log `[AUTO-FIX] {file}: {what changed}`
+- **Medium risk** (rewording a section, updating narrative descriptions): auto-fix conservatively (minimal change to match facts) and log `[AUTO-DECISION] {file}: {what changed} — applied conservative factual update`
+- **High risk** (removing content, changing philosophy/positioning, large rewrites): skip and log `[SKIPPED] {file}: {description of risky change} — too risky to auto-decide, leaving as-is`
 
 ---
 
@@ -516,7 +476,7 @@ preserved them. This skill must NEVER do that.
 3. Never regenerate a CHANGELOG entry from scratch. The entry was written by `/ship` from the
    actual diff and commit history. It is the source of truth. You are polishing prose, not
    rewriting history.
-4. If an entry looks wrong or incomplete, use AskUserQuestion — do NOT silently fix it.
+4. If an entry looks wrong or incomplete, log prominently and auto-fix only if the correction is clearly factual (e.g., wrong version number). For subjective issues, skip and log: `[SKIPPED] CHANGELOG entry may be incomplete — {details}`.
 5. Use Edit tool with exact `old_string` matches — never use Write to overwrite CHANGELOG.md.
 
 **If CHANGELOG was not modified in this branch:** skip this step.
@@ -529,7 +489,7 @@ preserved them. This skill must NEVER do that.
 - "You can now..." not "Refactored the..."
 - Flag and rewrite any entry that reads like a commit message.
 - Internal/contributor changes belong in a separate "### For contributors" subsection.
-- Auto-fix minor voice adjustments. Use AskUserQuestion if a rewrite would alter meaning.
+- Auto-fix minor voice adjustments. If a rewrite would alter meaning, preserve the original meaning and log: `[AUTO-DECISION] CHANGELOG voice polish — preserved original meaning, adjusted wording only.`
 
 ---
 
@@ -544,7 +504,7 @@ After auditing each file individually, do a cross-doc consistency pass:
    ARCHITECTURE.md exists but neither README nor CLAUDE.md links to it, flag it. Every doc
    should be discoverable from one of the two entry-point files.
 5. Flag any contradictions between documents. Auto-fix clear factual inconsistencies (e.g., a
-   version mismatch). Use AskUserQuestion for narrative contradictions.
+   version mismatch). For narrative contradictions, skip and log: `[SKIPPED] Cross-doc narrative contradiction between {file1} and {file2} — {details}. Leaving as-is.`
 
 ---
 
@@ -561,12 +521,13 @@ If TODOS.md does not exist, skip this step.
    evidence in the diff.
 
 2. **Items needing description updates:** If a TODO references files or components that were
-   significantly changed, its description may be stale. Use AskUserQuestion to confirm whether
-   the TODO should be updated, completed, or left as-is.
+   significantly changed, its description may be stale. Auto-decide: if the TODO's referenced
+   files were renamed or deleted, update the description. If the TODO's work was partially
+   done, add a note. Log each: `[AUTO-DECISION] TODOS.md: updated description for "{item title}" — {reason}`.
 
 3. **New deferred work:** Check the diff for `TODO`, `FIXME`, `HACK`, and `XXX` comments. For
-   each one that represents meaningful deferred work (not a trivial inline note), use
-   AskUserQuestion to ask whether it should be captured in TODOS.md.
+   each one that represents meaningful deferred work (not a trivial inline note), auto-add it
+   to TODOS.md with appropriate priority and category. Log: `[AUTO-DECISION] Added new TODO from {file}: "{description}".`
 
 ---
 
@@ -582,11 +543,9 @@ If TODOS.md does not exist, skip this step.
 git diff <base>...HEAD -- VERSION
 ```
 
-3. **If VERSION was NOT bumped:** Use AskUserQuestion:
-   - RECOMMENDATION: Choose C (Skip) because docs-only changes rarely warrant a version bump
-   - A) Bump PATCH (X.Y.Z+1) — if doc changes ship alongside code changes
-   - B) Bump MINOR (X.Y+1.0) — if this is a significant standalone release
-   - C) Skip — no version bump needed
+3. **If VERSION was NOT bumped:** Auto-decide based on change scope:
+   - If changes are docs-only (no code changes in the diff): skip version bump. Log: `[AUTO-DECISION] VERSION not bumped — docs-only changes don't warrant a version bump.`
+   - If changes include code alongside docs: bump PATCH. Log: `[AUTO-DECISION] VERSION bumped PATCH — doc changes ship alongside code changes.`
 
 4. **If VERSION was already bumped:** Do NOT skip silently. Instead, check whether the bump
    still covers the full scope of changes on this branch:
@@ -597,12 +556,7 @@ git diff <base>...HEAD -- VERSION
       that are NOT mentioned in the CHANGELOG entry for the current version?
    c. **If the CHANGELOG entry covers everything:** Skip — output "VERSION: Already bumped to
       vX.Y.Z, covers all changes."
-   d. **If there are significant uncovered changes:** Use AskUserQuestion explaining what the
-      current version covers vs what's new, and ask:
-      - RECOMMENDATION: Choose A because the new changes warrant their own version
-      - A) Bump to next patch (X.Y.Z+1) — give the new changes their own version
-      - B) Keep current version — add new changes to the existing CHANGELOG entry
-      - C) Skip — leave version as-is, handle later
+   d. **If there are significant uncovered changes:** Auto-decide: bump to next patch to give the new changes their own version. Log: `[AUTO-DECISION] VERSION bumped to next patch — current version entry doesn't cover all changes on this branch.` Update the CHANGELOG entry accordingly.
 
    The key insight: a VERSION bump set for "feature A" should not silently absorb "feature B"
    if feature B is substantial enough to deserve its own version entry.

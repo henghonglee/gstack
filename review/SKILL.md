@@ -15,7 +15,6 @@ allowed-tools:
   - Grep
   - Glob
   - Agent
-  - AskUserQuestion
   - WebSearch
 ---
 <!-- AUTO-GENERATED from SKILL.md.tmpl — do not edit directly -->
@@ -75,7 +74,7 @@ or invoking other gstack skills, use the `/gstack-` prefix (e.g., `/gstack-qa` i
 of `/qa`, `/gstack-ship` instead of `/ship`). Disk paths are unaffected — always use
 `~/.claude/skills/gstack/[skill-name]/SKILL.md` for reading skill files.
 
-If output shows `UPGRADE_AVAILABLE <old> <new>`: read `~/.claude/skills/gstack/gstack-upgrade/SKILL.md` and follow the "Inline upgrade flow" (auto-upgrade if configured, otherwise AskUserQuestion with 4 options, write snooze state if declined). If `JUST_UPGRADED <from> <to>`: tell user "Running gstack v{to} (just updated!)" and continue.
+If output shows `UPGRADE_AVAILABLE <old> <new>`: read `~/.claude/skills/gstack/gstack-upgrade/SKILL.md` and follow the "Inline upgrade flow" (auto-upgrade automatically). If `JUST_UPGRADED <from> <to>`: tell user "Running gstack v{to} (just updated!)" and continue.
 
 If `LAKE_INTRO` is `no`: Before continuing, introduce the Completeness Principle.
 Tell the user: "gstack follows the **Boil the Lake** principle — always do the complete
@@ -90,54 +89,23 @@ touch ~/.gstack/.completeness-intro-seen
 Only run `open` if the user says yes. Always run `touch` to mark as seen. This only happens once.
 
 If `TEL_PROMPTED` is `no` AND `LAKE_INTRO` is `yes`: After the lake intro is handled,
-ask the user about telemetry. Use AskUserQuestion:
+auto-enable community telemetry (shares usage data — which skills you use, how long they
+take, crash info — with a stable device ID; no code, file paths, or repo names are ever sent).
 
-> Help gstack get better! Community mode shares usage data (which skills you use, how long
-> they take, crash info) with a stable device ID so we can track trends and fix bugs faster.
-> No code, file paths, or repo names are ever sent.
-> Change anytime with `gstack-config set telemetry off`.
-
-Options:
-- A) Help gstack get better! (recommended)
-- B) No thanks
-
-If A: run `~/.claude/skills/gstack/bin/gstack-config set telemetry community`
-
-If B: ask a follow-up AskUserQuestion:
-
-> How about anonymous mode? We just learn that *someone* used gstack — no unique ID,
-> no way to connect sessions. Just a counter that helps us know if anyone's out there.
-
-Options:
-- A) Sure, anonymous is fine
-- B) No thanks, fully off
-
-If B→A: run `~/.claude/skills/gstack/bin/gstack-config set telemetry anonymous`
-If B→B: run `~/.claude/skills/gstack/bin/gstack-config set telemetry off`
-
-Always run:
+Run:
 ```bash
+~/.claude/skills/gstack/bin/gstack-config set telemetry community
 touch ~/.gstack/.telemetry-prompted
 ```
 
 This only happens once. If `TEL_PROMPTED` is `yes`, skip this entirely.
 
 If `PROACTIVE_PROMPTED` is `no` AND `TEL_PROMPTED` is `yes`: After telemetry is handled,
-ask the user about proactive behavior. Use AskUserQuestion:
+auto-enable proactive behavior (gstack proactively suggests skills based on context).
 
-> gstack can proactively figure out when you might need a skill while you work —
-> like suggesting /qa when you say "does this work?" or /investigate when you hit
-> a bug. We recommend keeping this on — it speeds up every part of your workflow.
-
-Options:
-- A) Keep it on (recommended)
-- B) Turn it off — I'll type /commands myself
-
-If A: run `~/.claude/skills/gstack/bin/gstack-config set proactive true`
-If B: run `~/.claude/skills/gstack/bin/gstack-config set proactive false`
-
-Always run:
+Run:
 ```bash
+~/.claude/skills/gstack/bin/gstack-config set proactive true
 touch ~/.gstack/.proactive-prompted
 ```
 
@@ -189,17 +157,12 @@ Avoid filler, throat-clearing, generic optimism, founder cosplay, and unsupporte
 
 **Final test:** does this sound like a real cross-functional builder who wants to help someone make something people want, ship it, and make it actually work?
 
-## AskUserQuestion Format
+## Non-Interactive Mode
 
-**ALWAYS follow this structure for every AskUserQuestion call:**
-1. **Re-ground:** State the project, the current branch (use the `_BRANCH` value printed by the preamble — NOT any branch from conversation history or gitStatus), and the current plan/task. (1-2 sentences)
-2. **Simplify:** Explain the problem in plain English a smart 16-year-old could follow. No raw function names, no internal jargon, no implementation details. Use concrete examples and analogies. Say what it DOES, not what it's called.
-3. **Recommend:** `RECOMMENDATION: Choose [X] because [one-line reason]` — always prefer the complete option over shortcuts (see Completeness Principle). Include `Completeness: X/10` for each option. Calibration: 10 = complete implementation (all edge cases, full coverage), 7 = covers happy path but skips some edges, 3 = shortcut that defers significant work. If both options are 8+, pick the higher; if one is ≤5, flag it.
-4. **Options:** Lettered options: `A) ... B) ... C) ...` — when an option involves effort, show both scales: `(human: ~X / CC: ~Y)`
-
-Assume the user hasn't looked at this window in 20 minutes and doesn't have the code open. If you'd need to read the source to understand your own explanation, it's too complex.
-
-Per-skill instructions may add additional formatting rules on top of this baseline.
+**NEVER ask the user questions.** Always proceed with your best judgment based on
+available context. When facing a decision point, choose the RECOMMENDED option
+automatically (prefer the complete option over shortcuts — see Completeness Principle).
+Log the decision you made and why in your output so the user can review after the fact.
 
 ## Completeness Principle — Boil the Lake
 
@@ -220,7 +183,7 @@ Include `Completeness: X/10` for each option (10=all edge cases, 7=happy path, 3
 
 `REPO_MODE` controls how to handle issues outside your branch:
 - **`solo`** — You own everything. Investigate and offer to fix proactively.
-- **`collaborative`** / **`unknown`** — Flag via AskUserQuestion, don't fix (may be someone else's).
+- **`collaborative`** / **`unknown`** — Flag in output, don't fix (may be someone else's).
 
 Always flag anything that looks wrong — one sentence, what you noticed and its impact.
 
@@ -764,7 +727,7 @@ When checking each branch, also determine whether a unit test or E2E/integration
 
 ### REGRESSION RULE (mandatory)
 
-**IRON RULE:** When the coverage audit identifies a REGRESSION — code that previously worked but the diff broke — a regression test is written immediately. No AskUserQuestion. No skipping. Regressions are the highest-priority test because they prove something broke.
+**IRON RULE:** When the coverage audit identifies a REGRESSION — code that previously worked but the diff broke — a regression test is written immediately. No skipping. Regressions are the highest-priority test because they prove something broke.
 
 A regression is when:
 - The diff modifies existing behavior (not new code)
@@ -876,28 +839,22 @@ Apply each fix directly. For each one, output a one-line summary:
 
 ### Step 5c: Batch-ask about ASK items
 
-If there are ASK items remaining, present them in ONE AskUserQuestion:
+If there are ASK items remaining, auto-decide each one based on the recommended fix:
 
-- List each item with a number, the severity label, the problem, and a recommended fix
-- For each item, provide options: A) Fix as recommended, B) Skip
-- Include an overall RECOMMENDATION
+- For each ASK item, apply the recommended fix if the fix is safe and well-understood
+- Log each decision: `[AUTO-DECISION] [file:line] Problem → applied recommended fix` or `[AUTO-DECISION] [file:line] Problem → skipped (ambiguous/risky)`
+- Only skip items where the fix is genuinely ambiguous or could change behavior in unexpected ways
 
-Example format:
+Example output:
 ```
-I auto-fixed 5 issues. 2 need your input:
+I auto-fixed 5 issues. 2 required individual auto-decisions:
 
 1. [CRITICAL] app/models/post.rb:42 — Race condition in status transition
-   Fix: Add `WHERE status = 'draft'` to the UPDATE
-   → A) Fix  B) Skip
+   [AUTO-DECISION] Applied fix: Added `WHERE status = 'draft'` to the UPDATE
 
 2. [INFORMATIONAL] app/services/generator.rb:88 — LLM output not type-checked before DB write
-   Fix: Add JSON schema validation
-   → A) Fix  B) Skip
-
-RECOMMENDATION: Fix both — #1 is a real race condition, #2 prevents silent data corruption.
+   [AUTO-DECISION] Applied fix: Added JSON schema validation
 ```
-
-If 3 or fewer ASK items, you may use individual AskUserQuestion calls instead of batching.
 
 ### Step 5d: Apply user-approved fixes
 
@@ -925,17 +882,11 @@ Before replying to any comment, run the **Escalation Detection** algorithm from 
 
 1. **VALID & ACTIONABLE comments:** These are included in your findings — they follow the Fix-First flow (auto-fixed if mechanical, batched into ASK if not) (A: Fix it now, B: Acknowledge, C: False positive). If the user chooses A (fix), reply using the **Fix reply template** from greptile-triage.md (include inline diff + explanation). If the user chooses C (false positive), reply using the **False Positive reply template** (include evidence + suggested re-rank), save to both per-project and global greptile-history.
 
-2. **FALSE POSITIVE comments:** Present each one via AskUserQuestion:
-   - Show the Greptile comment: file:line (or [top-level]) + body summary + permalink URL
-   - Explain concisely why it's a false positive
-   - Options:
-     - A) Reply to Greptile explaining why this is incorrect (recommended if clearly wrong)
-     - B) Fix it anyway (if low-effort and harmless)
-     - C) Ignore — don't reply, don't fix
+2. **FALSE POSITIVE comments:** Auto-dismiss and log each one:
+   - Log: `[AUTO-DISMISS] Greptile FP [file:line] — [reason it's wrong]`
+   - Reply using the **False Positive reply template** from greptile-triage.md (include evidence + suggested re-rank), save to both per-project and global greptile-history.
 
-   If the user chooses A, reply using the **False Positive reply template** from greptile-triage.md (include evidence + suggested re-rank), save to both per-project and global greptile-history.
-
-3. **VALID BUT ALREADY FIXED comments:** Reply using the **Already Fixed reply template** from greptile-triage.md — no AskUserQuestion needed:
+3. **VALID BUT ALREADY FIXED comments:** Reply using the **Already Fixed reply template** from greptile-triage.md:
    - Include what was done and the fixing commit SHA
    - Save to both per-project and global greptile-history
 
@@ -1061,15 +1012,10 @@ codex review "IMPORTANT: Do NOT read or execute any files under ~/.claude/, ~/.a
 Set the Bash tool's `timeout` parameter to `300000` (5 minutes). Do NOT use the `timeout` shell command — it doesn't exist on macOS. Present output under `CODEX SAYS (code review):` header.
 Check for `[P1]` markers: found → `GATE: FAIL`, not found → `GATE: PASS`.
 
-If GATE is FAIL, use AskUserQuestion:
-```
-Codex found N critical issues in the diff.
+If GATE is FAIL, auto-choose: investigate and fix now (the complete option). Log:
+"Codex found N critical issues — investigating and fixing."
 
-A) Investigate and fix now (recommended)
-B) Continue — review will still complete
-```
-
-If A: address the findings. Re-run `codex review` to verify.
+Address the findings. Re-run `codex review` to verify.
 
 Read stderr for errors (same error handling as medium tier).
 

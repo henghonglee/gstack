@@ -13,7 +13,6 @@ allowed-tools:
   - Grep
   - Glob
   - Agent
-  - AskUserQuestion
   - WebSearch
 ---
 
@@ -92,12 +91,7 @@ service with existing deployment — verify that a distribution pipeline exists.
    grep -qE 'release|publish|deploy' .gitlab-ci.yml 2>/dev/null && echo "GITLAB_CI_RELEASE"
    ```
 
-3. **If no release pipeline exists and a new artifact was added:** Use AskUserQuestion:
-   - "This PR adds a new binary/tool but there's no CI/CD pipeline to build and publish it.
-     Users won't be able to download the artifact after merge."
-   - A) Add a release workflow now (CI/CD release pipeline — GitHub Actions or GitLab CI depending on platform)
-   - B) Defer — add to TODOS.md
-   - C) Not needed — this is internal/web-only, existing deployment covers it
+3. **If no release pipeline exists and a new artifact was added:** Auto-decide: create a basic CI/CD release pipeline (GitHub Actions or GitLab CI depending on platform). Log: `[AUTO-DECISION] New artifact detected without release pipeline — creating release workflow.` If the artifact is clearly internal/web-only with existing deployment, skip and add to TODOS.md instead.
 
 4. **If release pipeline exists:** Continue silently.
 5. **If no new artifact detected:** Skip silently.
@@ -250,13 +244,12 @@ Review the diff for structural issues that tests don't catch.
 5. **Auto-fix all AUTO-FIX items.** Apply each fix. Output one line per fix:
    `[AUTO-FIXED] [file:line] Problem → what you did`
 
-6. **If ASK items remain,** present them in ONE AskUserQuestion:
-   - List each with number, severity, problem, recommended fix
-   - Per-item options: A) Fix  B) Skip
-   - Overall RECOMMENDATION
-   - If 3 or fewer ASK items, you may use individual AskUserQuestion calls instead
+6. **If ASK items remain,** auto-decide each one based on the recommended fix:
+   - For each ASK item, apply the recommended fix if the fix is safe and well-understood
+   - Log each decision: `[AUTO-DECISION] [file:line] Problem → applied recommended fix` or `[AUTO-DECISION] [file:line] Problem → skipped (ambiguous/risky)`
+   - Only skip items where the fix is genuinely ambiguous or could change behavior in unexpected ways
 
-7. **After all fixes (auto + user-approved):**
+7. **After all fixes (auto + auto-decided):**
    - If ANY fixes were applied: commit fixed files by name (`git add <fixed-files> && git commit -m "fix: pre-landing review fixes"`), then **STOP** and tell the user to run `/ship` again to re-test.
    - If no fixes applied (all ASK items skipped, or no issues found): continue to Step 4.
 
@@ -289,24 +282,18 @@ Before replying to any comment, run the **Escalation Detection** algorithm from 
 
 For each classified comment:
 
-**VALID & ACTIONABLE:** Use AskUserQuestion with:
-- The comment (file:line or [top-level] + body summary + permalink URL)
-- `RECOMMENDATION: Choose A because [one-line reason]`
-- Options: A) Fix now, B) Acknowledge and ship anyway, C) It's a false positive
-- If user chooses A: apply the fix, commit the fixed files (`git add <fixed-files> && git commit -m "fix: address Greptile review — <brief description>"`), reply using the **Fix reply template** from greptile-triage.md (include inline diff + explanation), and save to both per-project and global greptile-history (type: fix).
-- If user chooses C: reply using the **False Positive reply template** from greptile-triage.md (include evidence + suggested re-rank), save to both per-project and global greptile-history (type: fp).
+**VALID & ACTIONABLE:** Auto-fix valid actionable items directly:
+- Log: `[AUTO-FIX] Greptile comment [file:line] — fixing: [one-line reason]`
+- Apply the fix, commit the fixed files (`git add <fixed-files> && git commit -m "fix: address Greptile review — <brief description>"`), reply using the **Fix reply template** from greptile-triage.md (include inline diff + explanation), and save to both per-project and global greptile-history (type: fix).
+- If the fix is genuinely ambiguous or high-risk, skip it and log: `[AUTO-DECISION] Greptile comment [file:line] — skipped (ambiguous/high-risk)`. Save to greptile-history (type: skipped).
 
-**VALID BUT ALREADY FIXED:** Reply using the **Already Fixed reply template** from greptile-triage.md — no AskUserQuestion needed:
+**VALID BUT ALREADY FIXED:** Reply using the **Already Fixed reply template** from greptile-triage.md:
 - Include what was done and the fixing commit SHA
 - Save to both per-project and global greptile-history (type: already-fixed)
 
-**FALSE POSITIVE:** Use AskUserQuestion:
-- Show the comment and why you think it's wrong (file:line or [top-level] + body summary + permalink URL)
-- Options:
-  - A) Reply to Greptile explaining the false positive (recommended if clearly wrong)
-  - B) Fix it anyway (if trivial)
-  - C) Ignore silently
-- If user chooses A: reply using the **False Positive reply template** from greptile-triage.md (include evidence + suggested re-rank), save to both per-project and global greptile-history (type: fp)
+**FALSE POSITIVE:** Auto-dismiss false positives:
+- Log: `[AUTO-DISMISS] Greptile FP [file:line] — [reason it's wrong]`
+- Reply using the **False Positive reply template** from greptile-triage.md (include evidence + suggested re-rank), save to both per-project and global greptile-history (type: fp)
 
 **SUPPRESSED:** Skip silently — these are known false positives from previous triage.
 
@@ -386,11 +373,7 @@ Read `.claude/skills/review/TODOS-format.md` for the canonical format reference.
 
 **1. Check if TODOS.md exists** in the repository root.
 
-**If TODOS.md does not exist:** Use AskUserQuestion:
-- Message: "GStack recommends maintaining a TODOS.md organized by skill/component, then priority (P0 at top through P4, then Completed at bottom). See TODOS-format.md for the full format. Would you like to create one?"
-- Options: A) Create it now, B) Skip for now
-- If A: Create `TODOS.md` with a skeleton (# TODOS heading + ## Completed section). Continue to step 3.
-- If B: Skip the rest of Step 5.5. Continue to Step 6.
+**If TODOS.md does not exist:** Auto-create it. Log: `[AUTO-DECISION] TODOS.md not found — creating with recommended structure.` Create `TODOS.md` with a skeleton (`# TODOS` heading + `## Completed` section). Continue to step 3.
 
 **2. Check structure and organization:**
 
@@ -399,11 +382,7 @@ Read TODOS.md and verify it follows the recommended structure:
 - Each item has `**Priority:**` field with P0-P4 value
 - A `## Completed` section at the bottom
 
-**If disorganized** (missing priority fields, no component groupings, no Completed section): Use AskUserQuestion:
-- Message: "TODOS.md doesn't follow the recommended structure (skill/component groupings, P0-P4 priority, Completed section). Would you like to reorganize it?"
-- Options: A) Reorganize now (recommended), B) Leave as-is
-- If A: Reorganize in-place following TODOS-format.md. Preserve all content — only restructure, never delete items.
-- If B: Continue to step 3 without restructuring.
+**If disorganized** (missing priority fields, no component groupings, no Completed section): Auto-fix the structure. Log: `[AUTO-FIX] TODOS.md disorganized — reorganizing to recommended structure.` Reorganize in-place following TODOS-format.md. Preserve all content — only restructure, never delete items. Continue to step 3.
 
 **3. Detect completed TODOs:**
 

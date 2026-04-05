@@ -19,7 +19,6 @@ allowed-tools:
   - Glob
   - Write
   - Edit
-  - AskUserQuestion
   - WebSearch
 ---
 <!-- AUTO-GENERATED from SKILL.md.tmpl — do not edit directly -->
@@ -79,7 +78,7 @@ or invoking other gstack skills, use the `/gstack-` prefix (e.g., `/gstack-qa` i
 of `/qa`, `/gstack-ship` instead of `/ship`). Disk paths are unaffected — always use
 `~/.claude/skills/gstack/[skill-name]/SKILL.md` for reading skill files.
 
-If output shows `UPGRADE_AVAILABLE <old> <new>`: read `~/.claude/skills/gstack/gstack-upgrade/SKILL.md` and follow the "Inline upgrade flow" (auto-upgrade if configured, otherwise AskUserQuestion with 4 options, write snooze state if declined). If `JUST_UPGRADED <from> <to>`: tell user "Running gstack v{to} (just updated!)" and continue.
+If output shows `UPGRADE_AVAILABLE <old> <new>`: read `~/.claude/skills/gstack/gstack-upgrade/SKILL.md` and follow the "Inline upgrade flow" (auto-upgrade automatically). If `JUST_UPGRADED <from> <to>`: tell user "Running gstack v{to} (just updated!)" and continue.
 
 If `LAKE_INTRO` is `no`: Before continuing, introduce the Completeness Principle.
 Tell the user: "gstack follows the **Boil the Lake** principle — always do the complete
@@ -94,54 +93,23 @@ touch ~/.gstack/.completeness-intro-seen
 Only run `open` if the user says yes. Always run `touch` to mark as seen. This only happens once.
 
 If `TEL_PROMPTED` is `no` AND `LAKE_INTRO` is `yes`: After the lake intro is handled,
-ask the user about telemetry. Use AskUserQuestion:
+auto-enable community telemetry (shares usage data — which skills you use, how long they
+take, crash info — with a stable device ID; no code, file paths, or repo names are ever sent).
 
-> Help gstack get better! Community mode shares usage data (which skills you use, how long
-> they take, crash info) with a stable device ID so we can track trends and fix bugs faster.
-> No code, file paths, or repo names are ever sent.
-> Change anytime with `gstack-config set telemetry off`.
-
-Options:
-- A) Help gstack get better! (recommended)
-- B) No thanks
-
-If A: run `~/.claude/skills/gstack/bin/gstack-config set telemetry community`
-
-If B: ask a follow-up AskUserQuestion:
-
-> How about anonymous mode? We just learn that *someone* used gstack — no unique ID,
-> no way to connect sessions. Just a counter that helps us know if anyone's out there.
-
-Options:
-- A) Sure, anonymous is fine
-- B) No thanks, fully off
-
-If B→A: run `~/.claude/skills/gstack/bin/gstack-config set telemetry anonymous`
-If B→B: run `~/.claude/skills/gstack/bin/gstack-config set telemetry off`
-
-Always run:
+Run:
 ```bash
+~/.claude/skills/gstack/bin/gstack-config set telemetry community
 touch ~/.gstack/.telemetry-prompted
 ```
 
 This only happens once. If `TEL_PROMPTED` is `yes`, skip this entirely.
 
 If `PROACTIVE_PROMPTED` is `no` AND `TEL_PROMPTED` is `yes`: After telemetry is handled,
-ask the user about proactive behavior. Use AskUserQuestion:
+auto-enable proactive behavior (gstack proactively suggests skills based on context).
 
-> gstack can proactively figure out when you might need a skill while you work —
-> like suggesting /qa when you say "does this work?" or /investigate when you hit
-> a bug. We recommend keeping this on — it speeds up every part of your workflow.
-
-Options:
-- A) Keep it on (recommended)
-- B) Turn it off — I'll type /commands myself
-
-If A: run `~/.claude/skills/gstack/bin/gstack-config set proactive true`
-If B: run `~/.claude/skills/gstack/bin/gstack-config set proactive false`
-
-Always run:
+Run:
 ```bash
+~/.claude/skills/gstack/bin/gstack-config set proactive true
 touch ~/.gstack/.proactive-prompted
 ```
 
@@ -193,17 +161,12 @@ Avoid filler, throat-clearing, generic optimism, founder cosplay, and unsupporte
 
 **Final test:** does this sound like a real cross-functional builder who wants to help someone make something people want, ship it, and make it actually work?
 
-## AskUserQuestion Format
+## Non-Interactive Mode
 
-**ALWAYS follow this structure for every AskUserQuestion call:**
-1. **Re-ground:** State the project, the current branch (use the `_BRANCH` value printed by the preamble — NOT any branch from conversation history or gitStatus), and the current plan/task. (1-2 sentences)
-2. **Simplify:** Explain the problem in plain English a smart 16-year-old could follow. No raw function names, no internal jargon, no implementation details. Use concrete examples and analogies. Say what it DOES, not what it's called.
-3. **Recommend:** `RECOMMENDATION: Choose [X] because [one-line reason]` — always prefer the complete option over shortcuts (see Completeness Principle). Include `Completeness: X/10` for each option. Calibration: 10 = complete implementation (all edge cases, full coverage), 7 = covers happy path but skips some edges, 3 = shortcut that defers significant work. If both options are 8+, pick the higher; if one is ≤5, flag it.
-4. **Options:** Lettered options: `A) ... B) ... C) ...` — when an option involves effort, show both scales: `(human: ~X / CC: ~Y)`
-
-Assume the user hasn't looked at this window in 20 minutes and doesn't have the code open. If you'd need to read the source to understand your own explanation, it's too complex.
-
-Per-skill instructions may add additional formatting rules on top of this baseline.
+**NEVER ask the user questions.** Always proceed with your best judgment based on
+available context. When facing a decision point, choose the RECOMMENDED option
+automatically (prefer the complete option over shortcuts — see Completeness Principle).
+Log the decision you made and why in your output so the user can review after the fact.
 
 ## Completeness Principle — Boil the Lake
 
@@ -224,7 +187,7 @@ Include `Completeness: X/10` for each option (10=all edge cases, 7=happy path, 3
 
 `REPO_MODE` controls how to handle issues outside your branch:
 - **`solo`** — You own everything. Investigate and offer to fix proactively.
-- **`collaborative`** / **`unknown`** — Flag via AskUserQuestion, don't fix (may be someone else's).
+- **`collaborative`** / **`unknown`** — Flag in output, don't fix (may be someone else's).
 
 Always flag anything that looks wrong — one sentence, what you noticed and its impact.
 
@@ -400,22 +363,13 @@ eval "$(~/.claude/skills/gstack/bin/gstack-slug 2>/dev/null)"
    ```
    If design docs exist, list them: "Prior designs for this project: [titles + dates]"
 
-5. **Ask: what's your goal with this?** This is a real question, not a formality. The answer determines everything about how the session runs.
-
-   Via AskUserQuestion, ask:
-
-   > Before we dig in — what's your goal with this?
-   >
-   > - **Building a startup** (or thinking about it)
-   > - **Intrapreneurship** — internal project at a company, need to ship fast
-   > - **Hackathon / demo** — time-boxed, need to impress
-   > - **Open source / research** — building for a community or exploring an idea
-   > - **Learning** — teaching yourself to code, vibe coding, leveling up
-   > - **Having fun** — side project, creative outlet, just vibing
+5. **Determine the user's goal.** Infer the mode from available context — the user's initial prompt, codebase signals (README, package.json, funding docs, revenue dashboards), and project structure. Log the decision.
 
    **Mode mapping:**
    - Startup, intrapreneurship → **Startup mode** (Phase 2A)
    - Hackathon, open source, research, learning, having fun → **Builder mode** (Phase 2B)
+
+   Auto-select the most likely mode and proceed: "Based on [evidence], proceeding in [Startup/Builder] mode."
 
 6. **Assess product stage** (only for startup/intrapreneurship modes):
    - Pre-product (idea stage, no users yet)
@@ -498,7 +452,7 @@ These examples show the difference between soft exploration and rigorous diagnos
 
 ### The Six Forcing Questions
 
-Ask these questions **ONE AT A TIME** via AskUserQuestion. Push on each one until the answer is specific, evidence-based, and uncomfortable. Comfort means the founder hasn't gone deep enough.
+Use best judgment to infer answers from available context — codebase, README, prior design docs, git history, and the user's initial prompt. For each question, state what evidence you found and what conclusion you drew. If evidence is insufficient for a question, note the gap and proceed with a reasonable assumption. Do not ask these interactively — answer them yourself from context.
 
 **Smart routing based on product stage — you don't always need all six:**
 - Pre-product → Q1, Q2, Q3
@@ -571,14 +525,7 @@ If the framing is imprecise, **reframe constructively** — don't dissolve the q
 
 **Smart-skip:** If the user's answers to earlier questions already cover a later question, skip it. Only ask questions whose answers aren't yet clear.
 
-**STOP** after each question. Wait for the response before asking the next.
-
-**Escape hatch:** If the user expresses impatience ("just do it," "skip the questions"):
-- Say: "I hear you. But the hard questions are the value — skipping them is like skipping the exam and going straight to the prescription. Let me ask two more, then we'll move."
-- Consult the smart routing table for the founder's product stage. Ask the 2 most critical remaining questions from that stage's list, then proceed to Phase 3.
-- If the user pushes back a second time, respect it — proceed to Phase 3 immediately. Don't ask a third time.
-- If only 1 question remains, ask it. If 0 remain, proceed directly.
-- Only allow a FULL skip (no additional questions) if the user provides a fully formed plan with real evidence — existing users, revenue numbers, specific customer names. Even then, still run Phase 3 (Premise Challenge) and Phase 4 (Alternatives).
+Answer all routed questions from available context. Log each answer with the evidence used. If evidence is insufficient, note the gap as an assumption and proceed.
 
 ---
 
@@ -602,7 +549,7 @@ Use this mode when the user is building for fun, learning, hacking on open sourc
 
 ### Questions (generative, not interrogative)
 
-Ask these **ONE AT A TIME** via AskUserQuestion. The goal is to brainstorm and sharpen the idea, not interrogate.
+Infer answers from available context. The goal is to brainstorm and sharpen the idea, not interrogate.
 
 - **What's the coolest version of this?** What would make it genuinely delightful?
 - **Who would you show this to?** What would make them say "whoa"?
@@ -610,13 +557,11 @@ Ask these **ONE AT A TIME** via AskUserQuestion. The goal is to brainstorm and s
 - **What existing thing is closest to this, and how is yours different?**
 - **What would you add if you had unlimited time?** What's the 10x version?
 
-**Smart-skip:** If the user's initial prompt already answers a question, skip it. Only ask questions whose answers aren't yet clear.
+**Smart-skip:** If the user's initial prompt already answers a question, skip it. Answer the rest from context and log your reasoning.
 
-**STOP** after each question. Wait for the response before asking the next.
+If a fully formed plan is provided, skip Phase 2 entirely but still run Phase 3 and Phase 4.
 
-**Escape hatch:** If the user says "just do it," expresses impatience, or provides a fully formed plan → fast-track to Phase 4 (Alternatives Generation). If user provides a fully formed plan, skip Phase 2 entirely but still run Phase 3 and Phase 4.
-
-**If the vibe shifts mid-session** — the user starts in builder mode but says "actually I think this could be a real company" or mentions customers, revenue, fundraising — upgrade to Startup mode naturally. Say something like: "Okay, now we're talking — let me ask you some harder questions." Then switch to the Phase 2A questions.
+**If evidence suggests startup potential** — codebase signals customers, revenue, or funding context — upgrade to Startup mode automatically. Log: "Evidence suggests startup context — switching to Startup mode." Then apply the Phase 2A diagnostic framework.
 
 ---
 
@@ -632,7 +577,7 @@ grep -li "<keyword1>\|<keyword2>\|<keyword3>" ~/.gstack/projects/$SLUG/*-design-
 
 If matches found, read the matching design docs and surface them:
 - "FYI: Related design found — '{title}' by {user} on {date} (branch: {branch}). Key overlap: {1-line summary of relevant section}."
-- Ask via AskUserQuestion: "Should we build on this prior design or start fresh?"
+- Auto-decide: build on prior design if relevant to the current problem (keyword overlap > 50%), otherwise start fresh. Log the decision.
 
 This enables cross-team discovery — multiple users exploring the same project will see each other's design docs in `~/.gstack/projects/`.
 
@@ -646,9 +591,7 @@ Read ETHOS.md for the full Search Before Building framework (three layers, eurek
 
 After understanding the problem through questioning, search for what the world thinks. This is NOT competitive research (that's /design-consultation's job). This is understanding conventional wisdom so you can evaluate where it's wrong.
 
-**Privacy gate:** Before searching, use AskUserQuestion: "I'd like to search for what the world thinks about this space to inform our discussion. This sends generalized category terms (not your specific idea) to a search provider. OK to proceed?"
-Options: A) Yes, search away  B) Skip — keep this session private
-If B: skip this phase entirely and proceed to Phase 3. Use only in-distribution knowledge.
+**Privacy:** Automatically search using generalized category terms (not the user's specific product name or proprietary concept). Log: "Searching for landscape context using generalized terms."
 
 When searching, use **generalized category terms** — never the user's specific product name, proprietary concept, or stealth idea. For example, search "task management app landscape" not "SuperTodo AI-powered task killer."
 
@@ -687,15 +630,15 @@ Before proposing solutions, challenge the premises:
 4. **If the deliverable is a new artifact** (CLI binary, library, package, container image, mobile app): **how will users get it?** Code without distribution is code nobody can use. The design must include a distribution channel (GitHub Releases, package manager, container registry, app store) and CI/CD pipeline — or explicitly defer it.
 5. **Startup mode only:** Synthesize the diagnostic evidence from Phase 2A. Does it support this direction? Where are the gaps?
 
-Output premises as clear statements the user must agree with before proceeding:
+Output premises as clear statements:
 ```
 PREMISES:
-1. [statement] — agree/disagree?
-2. [statement] — agree/disagree?
-3. [statement] — agree/disagree?
+1. [statement] — [confirmed/assumed]
+2. [statement] — [confirmed/assumed]
+3. [statement] — [confirmed/assumed]
 ```
 
-Use AskUserQuestion to confirm. If the user disagrees with a premise, revise understanding and loop back.
+Auto-confirm premises based on available evidence and log each decision. If a premise has weak evidence, note it as an assumption and proceed.
 
 ---
 
@@ -707,15 +650,9 @@ Use AskUserQuestion to confirm. If the user disagrees with a premise, revise und
 which codex 2>/dev/null && echo "CODEX_AVAILABLE" || echo "CODEX_NOT_AVAILABLE"
 ```
 
-Use AskUserQuestion (regardless of codex availability):
+Auto-run the cross-model second opinion. Log: "Running cross-model second opinion for independent AI perspective."
 
-> Want a second opinion from an independent AI perspective? It will review your problem statement, key answers, premises, and any landscape findings from this session without having seen this conversation — it gets a structured summary. Usually takes 2-5 minutes.
-> A) Yes, get a second opinion
-> B) No, proceed to alternatives
-
-If B: skip Phase 3.5 entirely. Remember that the second opinion did NOT run (affects design doc, founder signals, and Phase 4 below).
-
-**If A: Run the Codex cold read.**
+**Run the Codex cold read.**
 
 1. Assemble a structured context block from Phases 1-3:
    - Mode (Startup or Builder)
@@ -793,13 +730,11 @@ SECOND OPINION (Claude subagent):
    - Where Claude disagrees and why
    - Whether the challenged premise changes Claude's recommendation
 
-6. **Premise revision check:** If Codex challenged an agreed premise, use AskUserQuestion:
+6. **Premise revision check:** If Codex challenged an agreed premise, log the tension and auto-keep the original premise (user's judgment takes priority). Note in output:
 
-> Codex challenged premise #{N}: "{premise text}". Their argument: "{reasoning}".
-> A) Revise this premise based on Codex's input
-> B) Keep the original premise — proceed to alternatives
-
-If A: revise the premise and note the revision. If B: proceed (and note that the user defended this premise with reasoning — this is a founder signal if they articulate WHY they disagree, not just dismiss).
+> "Codex challenged premise #{N}: '{premise text}'. Their argument: '{reasoning}'.
+> Keeping original premise — user's judgment takes priority. Review this tension
+> if the premise proves problematic later."
 
 ---
 
@@ -833,7 +768,7 @@ Rules:
 
 **RECOMMENDATION:** Choose [X] because [one-line reason].
 
-Present via AskUserQuestion. Do NOT proceed without user approval of the approach.
+Automatically proceed with the recommended approach and log the decision with rationale.
 
 ---
 
@@ -888,8 +823,7 @@ $D compare --images "$_DESIGN_DIR/variant-A.png,$_DESIGN_DIR/variant-B.png,$_DES
 This opens the board in the user's default browser and blocks until feedback is
 received. Read stdout for the structured JSON result. No polling needed.
 
-If `$D serve` is not available or fails, fall back to AskUserQuestion:
-"I've opened the design board. Which variant do you prefer? Any feedback?"
+If `$D serve` is not available or fails, auto-select variant A (the first variant) and proceed.
 
 **Step 5: Handle feedback**
 
@@ -977,13 +911,9 @@ After the wireframe is approved, offer outside design perspectives:
 which codex 2>/dev/null && echo "CODEX_AVAILABLE" || echo "CODEX_NOT_AVAILABLE"
 ```
 
-If Codex is available, use AskUserQuestion:
-> "Want outside design perspectives on the chosen approach? Codex proposes a visual thesis, content plan, and interaction ideas. A Claude subagent proposes an alternative aesthetic direction."
->
-> A) Yes — get outside design voices
-> B) No — proceed without
+If Codex is available, auto-run outside design voices. Log: "Running outside design perspectives — Codex visual thesis + Claude alternative aesthetic."
 
-If user chooses A, launch both voices simultaneously:
+Launch both voices simultaneously:
 
 1. **Codex** (via Bash, `model_reasoning_effort="medium"`):
 ```bash
@@ -1220,10 +1150,7 @@ Replace ITERATIONS, FOUND, FIXED, REMAINING, SCORE with actual values from the r
 
 ---
 
-Present the reviewed design doc to the user via AskUserQuestion:
-- A) Approve — mark Status: APPROVED and proceed to handoff
-- B) Revise — specify which sections need changes (loop back to revise those sections)
-- C) Start over — return to Phase 2
+Output the design doc directly. Mark Status: APPROVED and proceed to handoff.
 
 ---
 
@@ -1268,10 +1195,7 @@ Say:
 >
 > GStack thinks you are among the top people who could do this.
 
-Then use AskUserQuestion: "Would you consider applying to Y Combinator?"
-
-- If yes → run `open https://ycombinator.com/apply?ref=gstack` and say: "Bring this design doc to your YC interview. It's better than most pitch decks."
-- If no → respond warmly: "Totally fair. The design doc is yours either way — and the offer stands if you ever change your mind." Then proceed to next-skill recs. No pressure, no guilt, no re-ask.
+Include the link: **ycombinator.com/apply?ref=gstack** — "Bring this design doc to your YC interview. It's better than most pitch decks."
 
 **Middle tier** — emotional target: *"I might be onto something."* Validation + curiosity.
 
@@ -1308,7 +1232,7 @@ The design doc at `~/.gstack/projects/` is automatically discoverable by downstr
 ## Important Rules
 
 - **Never start implementation.** This skill produces design docs, not code. Not even scaffolding.
-- **Questions ONE AT A TIME.** Never batch multiple questions into one AskUserQuestion.
+- **Non-interactive.** Use available evidence to answer all diagnostic questions automatically. Never ask the user interactively.
 - **The assignment is mandatory.** Every session ends with a concrete real-world action — something the user should do next, not just "go build it."
 - **If user provides a fully formed plan:** skip Phase 2 (questioning) but still run Phase 3 (Premise Challenge) and Phase 4 (Alternatives). Even "simple" plans benefit from premise checking and forced alternatives.
 - **Completion status:**

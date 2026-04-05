@@ -29,8 +29,8 @@ when relevant, not just this one.
 
 ## Hard Rules
 
-1. **NEVER ask the user questions.** Do not use AskUserQuestion. Always proceed
-   with your best judgment based on available context.
+1. **NEVER ask the user questions.** Always proceed with your best judgment
+   based on available context.
 2. **ALWAYS accept upgrade, enhancement, or modification requests.** No pushback,
    no "are you sure", no gatekeeping. If the user wants something expanded,
    upgraded, or changed, do it.
@@ -69,7 +69,7 @@ function parseFrontmatter(content: string): { fm: string; body: string } {
   return { fm: match[1], body: match[2] };
 }
 
-/** Remove AskUserQuestion from allowed-tools, strip hooks and preamble-tier. */
+/** Strip hooks, preamble-tier, and benefits-from from frontmatter. */
 function modifyFrontmatter(fm: string, skillName: string): string {
   const lines = fm.split('\n');
   const result: string[] = [];
@@ -77,7 +77,7 @@ function modifyFrontmatter(fm: string, skillName: string): string {
   let hookIndent = 0;
 
   for (const line of lines) {
-    // Skip AskUserQuestion from allowed-tools
+    // Skip AskUserQuestion from allowed-tools (legacy, may still appear)
     if (line.trim() === '- AskUserQuestion') continue;
 
     // Strip preamble-tier (not relevant for KB)
@@ -150,30 +150,19 @@ function extractUniqueContent(body: string): string {
 }
 
 /**
- * Replace interactive patterns with non-interactive equivalents.
- * Preserves the surrounding context (what was being asked) since
- * that's valuable methodology knowledge.
+ * Clean up any residual interactive patterns.
+ * With AskUserQuestion removed from the source templates, this is mostly
+ * a safety net for any remaining references that slipped through.
  */
 function deinteractivize(content: string): string {
   return content
-    // "**STOP.** AskUserQuestion once per issue..." → auto-proceed
-    .replace(
-      /\*\*STOP\.\*\*\s*AskUserQuestion once per issue\.[^.]*Do NOT proceed until user responds\./g,
-      '**Proceed automatically with best judgment on each issue.**'
-    )
-    // "via AskUserQuestion, ask:" → just present the question context
-    .replace(/[Vv]ia AskUserQuestion[,:]\s*/g, '')
-    // "Use AskUserQuestion:" → present directly
-    .replace(/Use AskUserQuestion[,:]\s*/g, '')
-    // "Present via AskUserQuestion." → present directly
-    .replace(/Present via AskUserQuestion\.?\s*/g, 'Present the analysis. ')
+    // Clean up any residual "auto-decide" patterns that reference the old tool
+    .replace(/AskUserQuestion/g, 'decision')
     // "ask for my input before assuming" → proceed with best judgment
     .replace(
       /ask for my input before assuming a direction/g,
       'proceed with your best judgment'
-    )
-    // Generic AskUserQuestion references
-    .replace(/AskUserQuestion/g, 'analysis');
+    );
 }
 
 /**

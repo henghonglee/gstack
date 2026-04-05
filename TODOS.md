@@ -4,7 +4,7 @@
 
 ### ML Prompt Injection Classifier
 
-**What:** Add DeBERTa-v3-base-prompt-injection-v2 via @huggingface/transformers v4 (WASM backend) as an ML defense layer for the Chrome sidebar. Reusable `browse/src/security.ts` module with `checkInjection()` API. Includes canary tokens, attack logging, shield icon, special telemetry (AskUserQuestion on detection even when telemetry off), and BrowseSafe-bench red team test harness (3,680 adversarial cases from Perplexity).
+**What:** Add DeBERTa-v3-base-prompt-injection-v2 via @huggingface/transformers v4 (WASM backend) as an ML defense layer for the Chrome sidebar. Reusable `browse/src/security.ts` module with `checkInjection()` API. Includes canary tokens, attack logging, shield icon, special telemetry (notification on detection even when telemetry off), and BrowseSafe-bench red team test harness (3,680 adversarial cases from Perplexity).
 
 **Why:** PR 1 fixes the architecture (command allowlist, XML framing, Opus default). But attackers can still trick Claude into navigating to phishing sites or exfiltrating visible page data via allowed browse commands. The ML classifier catches prompt injection patterns that architectural controls can't see. 94.8% accuracy, 99.6% recall, ~50-100ms inference via WASM. Defense-in-depth.
 
@@ -346,7 +346,7 @@ Linux cookie import shipped in v0.11.11.0 (Wave 3). Supports Chrome, Chromium, B
 
 ### Smart default QA tier
 
-**What:** After a few runs, check index.md for user's usual tier pick, skip the AskUserQuestion.
+**What:** After a few runs, check index.md for user's usual tier pick, auto-select it.
 
 **Why:** Reduces friction for repeat users.
 
@@ -606,7 +606,7 @@ Shipped in v0.8.3. Step 8.5 added to `/ship` — after creating the PR, `/ship` 
 
 **Why:** Without measurement, we can't know if the Completeness Principle is working. Could surface patterns (e.g., certain skills still bias toward shortcuts).
 
-**Context:** Would require logging choices (e.g., append to a JSONL file when AskUserQuestion resolves), parsing them, and displaying trends. Similar pattern to eval persistence.
+**Context:** Would require logging auto-decisions (e.g., append to a JSONL file when a decision is made), parsing them, and displaying trends. Similar pattern to eval persistence.
 
 **Effort:** M (human) / S (CC)
 **Priority:** P3

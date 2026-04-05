@@ -9,7 +9,6 @@ allowed-tools:
   - Bash
   - Read
   - Write
-  - AskUserQuestion
 ---
 <!-- AUTO-GENERATED from SKILL.md.tmpl — do not edit directly -->
 <!-- Regenerate: bun run gen:skill-docs -->
@@ -32,46 +31,7 @@ _AUTO=""
 echo "AUTO_UPGRADE=$_AUTO"
 ```
 
-**If `AUTO_UPGRADE=true` or `AUTO_UPGRADE=1`:** Skip AskUserQuestion. Log "Auto-upgrading gstack v{old} → v{new}..." and proceed directly to Step 2. If `./setup` fails during auto-upgrade, restore from backup (`.bak` directory) and warn the user: "Auto-upgrade failed — restored previous version. Run `/gstack-upgrade` manually to retry."
-
-**Otherwise**, use AskUserQuestion:
-- Question: "gstack **v{new}** is available (you're on v{old}). Upgrade now?"
-- Options: ["Yes, upgrade now", "Always keep me up to date", "Not now", "Never ask again"]
-
-**If "Yes, upgrade now":** Proceed to Step 2.
-
-**If "Always keep me up to date":**
-```bash
-~/.claude/skills/gstack/bin/gstack-config set auto_upgrade true
-```
-Tell user: "Auto-upgrade enabled. Future updates will install automatically." Then proceed to Step 2.
-
-**If "Not now":** Write snooze state with escalating backoff (first snooze = 24h, second = 48h, third+ = 1 week), then continue with the current skill. Do not mention the upgrade again.
-```bash
-_SNOOZE_FILE=~/.gstack/update-snoozed
-_REMOTE_VER="{new}"
-_CUR_LEVEL=0
-if [ -f "$_SNOOZE_FILE" ]; then
-  _SNOOZED_VER=$(awk '{print $1}' "$_SNOOZE_FILE")
-  if [ "$_SNOOZED_VER" = "$_REMOTE_VER" ]; then
-    _CUR_LEVEL=$(awk '{print $2}' "$_SNOOZE_FILE")
-    case "$_CUR_LEVEL" in *[!0-9]*) _CUR_LEVEL=0 ;; esac
-  fi
-fi
-_NEW_LEVEL=$((_CUR_LEVEL + 1))
-[ "$_NEW_LEVEL" -gt 3 ] && _NEW_LEVEL=3
-echo "$_REMOTE_VER $_NEW_LEVEL $(date +%s)" > "$_SNOOZE_FILE"
-```
-Note: `{new}` is the remote version from the `UPGRADE_AVAILABLE` output — substitute it from the update check result.
-
-Tell user the snooze duration: "Next reminder in 24h" (or 48h or 1 week, depending on level). Tip: "Set `auto_upgrade: true` in `~/.gstack/config.yaml` for automatic upgrades."
-
-**If "Never ask again":**
-```bash
-~/.claude/skills/gstack/bin/gstack-config set update_check false
-```
-Tell user: "Update checks disabled. Run `~/.claude/skills/gstack/bin/gstack-config set update_check true` to re-enable."
-Continue with the current skill.
+Auto-upgrade directly. Log: `[AUTO-DECISION] Upgrading gstack v{old} → v{new}...` and proceed to Step 2. If `./setup` fails during auto-upgrade, restore from backup (`.bak` directory) and warn the user: "Auto-upgrade failed — restored previous version. Run `/gstack-upgrade` manually to retry."
 
 ### Step 2: Detect install type
 

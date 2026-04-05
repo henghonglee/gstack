@@ -397,9 +397,9 @@ File a contributor report about this issue. Then tell me what you filed.`,
     // Add a remote so the agent can derive a project name
     run('git', ['remote', 'add', 'origin', 'https://github.com/acme/billing-app.git']);
 
-    // Extract AskUserQuestion format instructions from generated SKILL.md
+    // Extract Non-Interactive Mode instructions from generated SKILL.md
     const skillMd = fs.readFileSync(path.join(ROOT, 'SKILL.md'), 'utf-8');
-    const aqStart = skillMd.indexOf('## AskUserQuestion Format');
+    const aqStart = skillMd.indexOf('## Non-Interactive Mode');
     const aqEnd = skillMd.indexOf('\n## ', aqStart + 1);
     const aqBlock = skillMd.slice(aqStart, aqEnd > 0 ? aqEnd : undefined);
 
@@ -414,7 +414,7 @@ You are on branch feature/add-payments in the billing-app project. You were revi
 
 You've hit a decision point: the plan doesn't specify whether to use Stripe Checkout (hosted) or Stripe Elements (embedded). You need to ask the user which approach to use.
 
-Since this is non-interactive, DO NOT actually call AskUserQuestion. Instead, write the EXACT text you would display to the user (the full AskUserQuestion content) to the file: ${outputPath}
+Since this is non-interactive, write the EXACT text you would display to the user (the full question content) to the file: ${outputPath}
 
 Remember: _SESSIONS=4, so ELI16 mode is active. The user is juggling multiple windows and may not remember what this conversation is about. Re-ground them.`,
       workingDirectory: sessionDir,
@@ -482,7 +482,7 @@ Target page: ${testServer.url}/basic.html
 Read the file qa/SKILL.md for the QA workflow instructions.
 
 Run a Quick-depth QA test on ${testServer.url}/basic.html
-Do NOT use AskUserQuestion — run Quick tier directly.
+Run Quick tier directly.
 Do NOT try to start a server or discover ports — the URL above is ready.
 Write your report to ${qaDir}/qa-reports/qa-report.md`,
       workingDirectory: qaDir,
@@ -958,7 +958,7 @@ We're building a new user dashboard that shows recent activity, notifications, a
 
 Read plan.md — that's the plan to review. This is a standalone plan document, not a codebase — skip any codebase exploration or system audit steps.
 
-Choose HOLD SCOPE mode. Skip any AskUserQuestion calls — this is non-interactive.
+Choose HOLD SCOPE mode. This is non-interactive.
 Write your complete review directly to ${planDir}/review-output.md
 
 Focus on reviewing the plan content: architecture, error handling, security, and performance.`,
@@ -1042,7 +1042,7 @@ We're building a new user dashboard that shows recent activity, notifications, a
 
 Read plan.md — that's the plan to review. This is a standalone plan document, not a codebase — skip any codebase exploration or system audit steps.
 
-Choose SELECTIVE EXPANSION mode. Skip any AskUserQuestion calls — this is non-interactive.
+Choose SELECTIVE EXPANSION mode. This is non-interactive.
 For the cherry-pick ceremony, accept all expansion proposals automatically.
 Write your complete review directly to ${planDir}/review-output-selective.md
 
@@ -1136,7 +1136,7 @@ Replace session-cookie auth with JWT tokens. Currently using express-session + R
 
 Read plan.md — that's the plan to review. This is a standalone plan document, not a codebase — skip any codebase exploration steps.
 
-Proceed directly to the full review. Skip any AskUserQuestion calls — this is non-interactive.
+Proceed directly to the full review. This is non-interactive.
 Write your complete review directly to ${planDir}/review-output.md
 
 Focus on architecture, code quality, tests, and performance sections.`,
@@ -1221,7 +1221,7 @@ describeIfSelected('Retro E2E', ['retro'], () => {
     const result = await runSkillTest({
       prompt: `Read retro/SKILL.md for instructions on how to run a retrospective.
 
-Run /retro for the last 7 days of this git repo. Skip any AskUserQuestion calls — this is non-interactive.
+Run /retro for the last 7 days of this git repo. This is non-interactive.
 Write your retrospective report to ${retroDir}/retro-output.md
 
 Analyze the git history and produce the narrative report as described in the SKILL.md.`,
@@ -1294,7 +1294,7 @@ B="${browseBin}"
 Read the file qa-only/SKILL.md for the QA-only workflow instructions.
 
 Run a Quick QA test on ${testServer.url}/qa-eval.html
-Do NOT use AskUserQuestion — run Quick tier directly.
+Run Quick tier directly.
 Write your report to ${qaOnlyDir}/qa-reports/qa-only-report.md`,
       workingDirectory: qaOnlyDir,
       maxTurns: 35,
@@ -1414,7 +1414,7 @@ Read the file qa/SKILL.md for the QA workflow instructions.
 
 Run a Quick-tier QA test on ${qaFixUrl}
 The source code for this page is at ${qaFixDir}/index.html — you can fix bugs there.
-Do NOT use AskUserQuestion — run Quick tier directly.
+Run Quick tier directly.
 Write your report to ${qaFixDir}/qa-reports/qa-report.md
 
 This is a test+fix loop: find bugs, fix them in the source code, commit each fix, and re-verify.`,
@@ -1537,7 +1537,7 @@ export function main() { return Dashboard(); }
 
 Read plan.md — that's the plan to review. This is a standalone plan with source code in app.ts and dashboard.ts.
 
-Proceed directly to the full review. Skip any AskUserQuestion calls — this is non-interactive.
+Proceed directly to the full review. This is non-interactive.
 
 IMPORTANT: After your review, you MUST write the test-plan artifact as described in the "Test Plan Artifact" section of SKILL.md. The remote-slug shim is at ${planDir}/browse/bin/remote-slug.
 
@@ -1736,7 +1736,7 @@ Write a summary of what you detected to ${dir}/ship-preflight.md including:
 IMPORTANT: Follow the "Detect default branch" step first. Since there is no remote, gh will fail — fall back to main.
 Then use the detected branch name for all git queries.
 
-Run /retro for the last 7 days of this git repo. Skip any AskUserQuestion calls — this is non-interactive.
+Run /retro for the last 7 days of this git repo. This is non-interactive.
 This is a local-only repo so use the local branch (main) instead of origin/main for all git log commands.
 
 Write your retrospective to ${dir}/retro-output.md`,
@@ -1816,7 +1816,7 @@ describeIfSelected('Document-Release skill E2E', ['document-release'], () => {
 Run the /document-release workflow on this repo. The base branch is "main".
 
 IMPORTANT:
-- Do NOT use AskUserQuestion — auto-approve everything or skip if unsure.
+- Auto-approve everything or skip if unsure.
 - Do NOT push or create PRs (there is no remote).
 - Do NOT run gh commands (no remote).
 - Focus on updating README.md to reflect the new Feature C.
@@ -1964,7 +1964,7 @@ Follow the standalone upgrade flow:
 3. Run the setup script
 4. Show what's new from CHANGELOG
 
-Skip any AskUserQuestion calls — auto-approve the upgrade. Write a summary of what you did to stdout.
+Auto-approve the upgrade. Write a summary of what you did to stdout.
 
 IMPORTANT: The install directory is at ./.claude/skills/gstack — use that exact path.`,
       workingDirectory: upgradeDir,
@@ -2071,7 +2071,7 @@ A civic tech data platform for government employees to access, visualize, and sh
 
 This is a civic tech data platform called CivicPulse for government employees who need to access public data. Read the README.md for details.
 
-Skip research — work from your design knowledge. Skip the font preview page. Skip any AskUserQuestion calls — this is non-interactive. Accept your first design system proposal.
+Skip research — work from your design knowledge. Skip the font preview page. This is non-interactive. Accept your first design system proposal.
 
 Write DESIGN.md and CLAUDE.md (or update it) in the working directory.`,
       workingDirectory: designDir,
@@ -2135,7 +2135,7 @@ Write DESIGN.md and CLAUDE.md (or update it) in the working directory.`,
 
 This is a civic tech data platform called CivicPulse. Read the README.md.
 
-DO research what's out there before proposing — search for civic tech and government data platform designs. Skip the font preview page. Skip any AskUserQuestion calls — this is non-interactive.
+DO research what's out there before proposing — search for civic tech and government data platform designs. Skip the font preview page. This is non-interactive.
 
 Write DESIGN.md to the working directory.`,
       workingDirectory: designDir,
@@ -2195,7 +2195,7 @@ Body: system-ui
 
 There is already a DESIGN.md in this repo. Update it with a complete design system for CivicPulse, a civic tech data platform for government employees.
 
-Skip research. Skip font preview. Skip any AskUserQuestion calls — this is non-interactive.`,
+Skip research. Skip font preview. This is non-interactive.`,
       workingDirectory: designDir,
       maxTurns: 20,
       timeout: 360_000,
@@ -2237,7 +2237,7 @@ Skip research. Skip font preview. Skip any AskUserQuestion calls — this is non
 
 This is CivicPulse, a civic tech data platform. Read the README.md.
 
-Skip research. Skip any AskUserQuestion calls — this is non-interactive. Generate the font and color preview page but write it to ./design-preview.html instead of /tmp/ (do NOT run the open command). Then write DESIGN.md.`,
+Skip research. This is non-interactive. Generate the font and color preview page but write it to ./design-preview.html instead of /tmp/ (do NOT run the open command). Then write DESIGN.md.`,
       workingDirectory: designDir,
       maxTurns: 20,
       timeout: 360_000,
@@ -2347,7 +2347,7 @@ Build a user dashboard that shows account stats, recent activity, and settings.
 
 Review the plan in ./plan.md. This plan has several design gaps — it uses vague language like "clean, modern UI" and "cards and icons", mentions a "hero section with gradient" (AI slop), and doesn't specify empty states, error states, loading states, responsive behavior, or accessibility.
 
-Skip the preamble bash block. Skip any AskUserQuestion calls — this is non-interactive. Rate each design dimension 0-10 and explain what would make it a 10. Then EDIT plan.md to add the missing design decisions (interaction state table, empty states, responsive behavior, etc.).
+Skip the preamble bash block. This is non-interactive. Rate each design dimension 0-10 and explain what would make it a 10. Then EDIT plan.md to add the missing design decisions (interaction state table, empty states, responsive behavior, etc.).
 
 IMPORTANT: Do NOT try to browse any URLs or use a browse binary. This is a plan review, not a live site audit. Just read the plan file, review it, and edit it to fix the gaps.`,
       workingDirectory: reviewDir,
@@ -2410,7 +2410,7 @@ Migrate user records from PostgreSQL to a new schema with better indexing.
 
 Review the plan in ./backend-plan.md. This is a pure backend database migration plan with no UI changes.
 
-Skip the preamble bash block. Skip any AskUserQuestion calls — this is non-interactive. Write your findings directly to stdout.
+Skip the preamble bash block. This is non-interactive. Write your findings directly to stdout.
 
 IMPORTANT: Do NOT try to browse any URLs or use a browse binary. This is a plan review, not a live site audit.`,
       workingDirectory: reviewDir,
@@ -2540,7 +2540,7 @@ B="${browseBin}"
 
 Read design-review/SKILL.md for the design review + fix workflow.
 
-Review the site at ${serverUrl}. Use --quick mode. Skip any AskUserQuestion calls — this is non-interactive. Fix up to 3 issues max. Write your report to ./design-audit.md.`,
+Review the site at ${serverUrl}. Use --quick mode. This is non-interactive. Fix up to 3 issues max. Write your report to ./design-audit.md.`,
       workingDirectory: qaDesignDir,
       maxTurns: 30,
       timeout: 360_000,
@@ -2661,7 +2661,7 @@ Read the file qa/SKILL.md for the QA workflow instructions.
 
 Run a Quick-tier QA test on ${serverUrl}
 The source code for this page is at ${bootstrapDir}/index.html — you can fix bugs there.
-Do NOT use AskUserQuestion — for any AskUserQuestion prompts, choose the RECOMMENDED option automatically.
+For any decision points, choose the RECOMMENDED option automatically.
 Write your report to ${bootstrapDir}/qa-reports/qa-report.md
 
 This project has NO test framework. When the bootstrap asks, pick vitest (option A).

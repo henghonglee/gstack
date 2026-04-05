@@ -16,7 +16,6 @@ allowed-tools:
   - Edit
   - Glob
   - Grep
-  - AskUserQuestion
 ---
 
 {{PREAMBLE}}
@@ -133,26 +132,17 @@ If deploy workflows detected but no platform config:
 
 If nothing detected:
 
-Use AskUserQuestion to gather the information:
+Auto-detect the deploy configuration from the codebase:
 
-1. **How are deploys triggered?**
-   - A) Automatically on push to main (Fly, Render, Vercel, Netlify, etc.)
-   - B) Via GitHub Actions workflow
-   - C) Via a deploy script or CLI command (describe it)
-   - D) Manually (SSH, dashboard, etc.)
-   - E) This project doesn't deploy (library, CLI, tool)
+1. **Deploy trigger:** Scan for CI/CD config files (`.github/workflows/`, `Makefile`, `scripts/deploy*`, `Procfile`). Check `package.json` for deploy scripts. Infer the deploy method from what's found. Log: `[AUTO-DECISION] Deploy trigger: {detected method or "manual/unknown"}`
 
-2. **What's the production URL?** (Free text — the URL where the app runs)
+2. **Production URL:** Check for URLs in CI configs, environment files (`.env.example`, `.env.production`), README.md, and deployment configs. Also check for custom domain configs in platform files. Log: `[AUTO-DECISION] Production URL: {detected URL or "not detected — will need manual configuration"}`
 
-3. **How can gstack check if a deploy succeeded?**
-   - A) HTTP health check at a specific URL (e.g., /health, /api/status)
-   - B) CLI command (e.g., `fly status`, `kubectl rollout status`)
-   - C) Check the GitHub Actions workflow status
-   - D) No automated way — just check the URL loads
+3. **Health check:** Look for `/health`, `/api/status`, `/healthz` routes in the codebase. Check if the platform CLI is available. Log: `[AUTO-DECISION] Health check: {detected method}`
 
-4. **Any pre-merge or post-merge hooks?**
-   - Commands to run before merging (e.g., `bun run build`)
-   - Commands to run after merge but before deploy verification
+4. **Pre/post-merge hooks:** Check `package.json` scripts, `Makefile` targets, and CI configs for build/deploy steps.
+
+If critical information cannot be detected (no production URL found, no deploy method identified), log what was found and what's missing: `[AUTO-DECISION] Partial detection — writing what was found to CLAUDE.md. Missing: {list}. Edit the Deploy Configuration section in CLAUDE.md to fill in the gaps.`
 
 ### Step 4: Write configuration
 

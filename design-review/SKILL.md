@@ -17,7 +17,6 @@ allowed-tools:
   - Edit
   - Glob
   - Grep
-  - AskUserQuestion
   - WebSearch
 ---
 <!-- AUTO-GENERATED from SKILL.md.tmpl — do not edit directly -->
@@ -77,7 +76,7 @@ or invoking other gstack skills, use the `/gstack-` prefix (e.g., `/gstack-qa` i
 of `/qa`, `/gstack-ship` instead of `/ship`). Disk paths are unaffected — always use
 `~/.claude/skills/gstack/[skill-name]/SKILL.md` for reading skill files.
 
-If output shows `UPGRADE_AVAILABLE <old> <new>`: read `~/.claude/skills/gstack/gstack-upgrade/SKILL.md` and follow the "Inline upgrade flow" (auto-upgrade if configured, otherwise AskUserQuestion with 4 options, write snooze state if declined). If `JUST_UPGRADED <from> <to>`: tell user "Running gstack v{to} (just updated!)" and continue.
+If output shows `UPGRADE_AVAILABLE <old> <new>`: read `~/.claude/skills/gstack/gstack-upgrade/SKILL.md` and follow the "Inline upgrade flow" (auto-upgrade automatically). If `JUST_UPGRADED <from> <to>`: tell user "Running gstack v{to} (just updated!)" and continue.
 
 If `LAKE_INTRO` is `no`: Before continuing, introduce the Completeness Principle.
 Tell the user: "gstack follows the **Boil the Lake** principle — always do the complete
@@ -92,54 +91,23 @@ touch ~/.gstack/.completeness-intro-seen
 Only run `open` if the user says yes. Always run `touch` to mark as seen. This only happens once.
 
 If `TEL_PROMPTED` is `no` AND `LAKE_INTRO` is `yes`: After the lake intro is handled,
-ask the user about telemetry. Use AskUserQuestion:
+auto-enable community telemetry (shares usage data — which skills you use, how long they
+take, crash info — with a stable device ID; no code, file paths, or repo names are ever sent).
 
-> Help gstack get better! Community mode shares usage data (which skills you use, how long
-> they take, crash info) with a stable device ID so we can track trends and fix bugs faster.
-> No code, file paths, or repo names are ever sent.
-> Change anytime with `gstack-config set telemetry off`.
-
-Options:
-- A) Help gstack get better! (recommended)
-- B) No thanks
-
-If A: run `~/.claude/skills/gstack/bin/gstack-config set telemetry community`
-
-If B: ask a follow-up AskUserQuestion:
-
-> How about anonymous mode? We just learn that *someone* used gstack — no unique ID,
-> no way to connect sessions. Just a counter that helps us know if anyone's out there.
-
-Options:
-- A) Sure, anonymous is fine
-- B) No thanks, fully off
-
-If B→A: run `~/.claude/skills/gstack/bin/gstack-config set telemetry anonymous`
-If B→B: run `~/.claude/skills/gstack/bin/gstack-config set telemetry off`
-
-Always run:
+Run:
 ```bash
+~/.claude/skills/gstack/bin/gstack-config set telemetry community
 touch ~/.gstack/.telemetry-prompted
 ```
 
 This only happens once. If `TEL_PROMPTED` is `yes`, skip this entirely.
 
 If `PROACTIVE_PROMPTED` is `no` AND `TEL_PROMPTED` is `yes`: After telemetry is handled,
-ask the user about proactive behavior. Use AskUserQuestion:
+auto-enable proactive behavior (gstack proactively suggests skills based on context).
 
-> gstack can proactively figure out when you might need a skill while you work —
-> like suggesting /qa when you say "does this work?" or /investigate when you hit
-> a bug. We recommend keeping this on — it speeds up every part of your workflow.
-
-Options:
-- A) Keep it on (recommended)
-- B) Turn it off — I'll type /commands myself
-
-If A: run `~/.claude/skills/gstack/bin/gstack-config set proactive true`
-If B: run `~/.claude/skills/gstack/bin/gstack-config set proactive false`
-
-Always run:
+Run:
 ```bash
+~/.claude/skills/gstack/bin/gstack-config set proactive true
 touch ~/.gstack/.proactive-prompted
 ```
 
@@ -191,17 +159,12 @@ Avoid filler, throat-clearing, generic optimism, founder cosplay, and unsupporte
 
 **Final test:** does this sound like a real cross-functional builder who wants to help someone make something people want, ship it, and make it actually work?
 
-## AskUserQuestion Format
+## Non-Interactive Mode
 
-**ALWAYS follow this structure for every AskUserQuestion call:**
-1. **Re-ground:** State the project, the current branch (use the `_BRANCH` value printed by the preamble — NOT any branch from conversation history or gitStatus), and the current plan/task. (1-2 sentences)
-2. **Simplify:** Explain the problem in plain English a smart 16-year-old could follow. No raw function names, no internal jargon, no implementation details. Use concrete examples and analogies. Say what it DOES, not what it's called.
-3. **Recommend:** `RECOMMENDATION: Choose [X] because [one-line reason]` — always prefer the complete option over shortcuts (see Completeness Principle). Include `Completeness: X/10` for each option. Calibration: 10 = complete implementation (all edge cases, full coverage), 7 = covers happy path but skips some edges, 3 = shortcut that defers significant work. If both options are 8+, pick the higher; if one is ≤5, flag it.
-4. **Options:** Lettered options: `A) ... B) ... C) ...` — when an option involves effort, show both scales: `(human: ~X / CC: ~Y)`
-
-Assume the user hasn't looked at this window in 20 minutes and doesn't have the code open. If you'd need to read the source to understand your own explanation, it's too complex.
-
-Per-skill instructions may add additional formatting rules on top of this baseline.
+**NEVER ask the user questions.** Always proceed with your best judgment based on
+available context. When facing a decision point, choose the RECOMMENDED option
+automatically (prefer the complete option over shortcuts — see Completeness Principle).
+Log the decision you made and why in your output so the user can review after the fact.
 
 ## Completeness Principle — Boil the Lake
 
@@ -222,7 +185,7 @@ Include `Completeness: X/10` for each option (10=all edge cases, 7=happy path, 3
 
 `REPO_MODE` controls how to handle issues outside your branch:
 - **`solo`** — You own everything. Investigate and offer to fix proactively.
-- **`collaborative`** / **`unknown`** — Flag via AskUserQuestion, don't fix (may be someone else's).
+- **`collaborative`** / **`unknown`** — Flag in output, don't fix (may be someone else's).
 
 Always flag anything that looks wrong — one sentence, what you noticed and its impact.
 
@@ -383,17 +346,13 @@ Look for `DESIGN.md`, `design-system.md`, or similar in the repo root. If found,
 git status --porcelain
 ```
 
-If the output is non-empty (working tree is dirty), **STOP** and use AskUserQuestion:
+If the output is non-empty (working tree is dirty), auto-stash and proceed. Log: `[AUTO-DECISION] Working tree dirty — stashing uncommitted changes before design review. Will pop stash after design review completes.`
 
-"Your working tree has uncommitted changes. /design-review needs a clean tree so each design fix gets its own atomic commit."
+```bash
+git stash push -m "gstack-design-review: auto-stash before design review"
+```
 
-- A) Commit my changes — commit all current changes with a descriptive message, then start design review
-- B) Stash my changes — stash, run design review, pop the stash after
-- C) Abort — I'll clean up manually
-
-RECOMMENDATION: Choose A because uncommitted work should be preserved as a commit before design review adds its own fix commits.
-
-After the user chooses, execute their choice (commit or stash), then continue with setup.
+Continue with setup. Pop the stash at the end of the design review workflow (after Phase 11).
 
 **Find the browse binary:**
 
@@ -454,10 +413,9 @@ Store conventions as prose context for use in Phase 8e.5 or Step 3.4. **Skip the
 
 **If BOOTSTRAP_DECLINED** appears: Print "Test bootstrap previously declined — skipping." **Skip the rest of bootstrap.**
 
-**If NO runtime detected** (no config files found): Use AskUserQuestion:
-"I couldn't detect your project's language. What runtime are you using?"
-Options: A) Node.js/TypeScript B) Ruby/Rails C) Python D) Go E) Rust F) PHP G) Elixir H) This project doesn't need tests.
-If user picks H → write `.gstack/no-test-bootstrap` and continue without tests.
+**If NO runtime detected** (no config files found): Check for common source file extensions
+(`.ts`, `.js`, `.rb`, `.py`, `.go`, `.rs`, `.php`, `.ex`) to infer the runtime. If still
+unclear, write `.gstack/no-test-bootstrap` and continue without tests.
 
 **If runtime detected but no test framework — bootstrap:**
 
@@ -482,16 +440,11 @@ If WebSearch is unavailable, use this built-in knowledge table:
 
 ### B3. Framework selection
 
-Use AskUserQuestion:
-"I detected this is a [Runtime/Framework] project with no test framework. I researched current best practices. Here are the options:
-A) [Primary] — [rationale]. Includes: [packages]. Supports: unit, integration, smoke, e2e
-B) [Alternative] — [rationale]. Includes: [packages]
-C) Skip — don't set up testing right now
-RECOMMENDATION: Choose A because [reason based on project context]"
+Auto-choose the primary recommended framework for the detected runtime (from the table
+above). Log: "Auto-selected [Primary] for [Runtime] — the recommended default."
 
-If user picks C → write `.gstack/no-test-bootstrap`. Tell user: "If you change your mind later, delete `.gstack/no-test-bootstrap` and re-run." Continue without tests.
-
-If multiple runtimes detected (monorepo) → ask which runtime to set up first, with option to do both sequentially.
+If multiple runtimes detected (monorepo), set up the primary runtime first, then proceed
+to the next sequentially.
 
 ### B4. Install and configure
 
@@ -727,7 +680,7 @@ After the first navigation, check if the URL changed to a login-like path:
 ```bash
 $B url
 ```
-If URL contains `/login`, `/signin`, `/auth`, or `/sso`: the site requires authentication. AskUserQuestion: "This site requires authentication. Want to import cookies from your browser? Run `/setup-browser-cookies` first if needed."
+If URL contains `/login`, `/signin`, `/auth`, or `/sso`: the site requires authentication. Log: "This site requires authentication. Run `/setup-browser-cookies` to import cookies from your browser." Then attempt to proceed with the current session state.
 
 ### Design Audit Checklist (10 categories, ~80 items)
 
@@ -1305,7 +1258,7 @@ If the repo has a `TODOS.md`:
 
 ## Additional Rules (design-review specific)
 
-11. **Clean working tree required.** If dirty, use AskUserQuestion to offer commit/stash/abort before proceeding.
+11. **Clean working tree required.** If dirty, auto-stash before proceeding and pop stash after design review completes.
 12. **One commit per fix.** Never bundle multiple design fixes into one commit.
 13. **Only modify tests when generating regression tests in Phase 8e.5.** Never modify CI configuration. Never modify existing tests — only create new test files.
 14. **Revert on regression.** If a fix makes things worse, `git revert HEAD` immediately.

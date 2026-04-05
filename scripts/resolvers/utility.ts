@@ -80,8 +80,8 @@ done
 
 If \`PERSISTED_PLATFORM\` and \`PERSISTED_URL\` were found in CLAUDE.md, use them directly
 and skip manual detection. If no persisted config exists, use the auto-detected platform
-to guide deploy verification. If nothing is detected, ask the user via AskUserQuestion
-in the decision tree below.
+to guide deploy verification. If nothing is detected, suggest the user run \`/setup-deploy\`
+to configure deploy settings.
 
 If you want to persist deploy settings for future runs, suggest the user run \`/setup-deploy\`.`;
 }

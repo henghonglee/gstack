@@ -67,7 +67,7 @@ describeIfSelected('Document-Release skill E2E', ['document-release'], () => {
 Run the /document-release workflow on this repo. The base branch is "main".
 
 IMPORTANT:
-- Do NOT use AskUserQuestion — auto-approve everything or skip if unsure.
+- Auto-approve everything or skip if unsure.
 - Do NOT push or create PRs (there is no remote).
 - Do NOT run gh commands (no remote).
 - Focus on updating README.md to reflect the new Feature C.
@@ -286,7 +286,7 @@ Follow the standalone upgrade flow:
 3. Run the setup script
 4. Show what's new from CHANGELOG
 
-Skip any AskUserQuestion calls — auto-approve the upgrade. Write a summary of what you did to stdout.
+Auto-approve the upgrade. Write a summary of what you did to stdout.
 
 IMPORTANT: The install directory is at ./.claude/skills/gstack — use that exact path.`,
       workingDirectory: upgradeDir,

@@ -60,7 +60,7 @@ Instead, simulate the workflow:
 5. Write a deploy report skeleton to .gstack/deploy-reports/report.md showing the
    expected report structure (PR number: simulated, timing: simulated, verdict: simulated)
 
-Do NOT use AskUserQuestion. Do NOT run gh or fly commands.`,
+Do NOT run gh or fly commands.`,
       workingDirectory: landDir,
       maxTurns: 20,
       allowedTools: ['Bash', 'Read', 'Write', 'Edit', 'Grep', 'Glob'],
@@ -137,7 +137,7 @@ Instead, simulate the Step 1.5 first-run dry-run validation:
    - What will happen steps
 5. Write the dry-run report to .gstack/deploy-reports/dry-run-validation.md
 
-Do NOT use AskUserQuestion. Do NOT run gh or fly commands.
+Do NOT run gh or fly commands.
 Just demonstrate the first-run dry-run output.`,
       workingDirectory: firstRunDir,
       maxTurns: 20,
@@ -212,7 +212,7 @@ Simulate what the readiness gate would show:
 4. Write a simulated readiness report to .gstack/deploy-reports/readiness-report.md
    showing the review status as NOT RUN with the inline review offer text
 
-Do NOT use AskUserQuestion. Do NOT run gh commands.
+Do NOT run gh commands.
 Show what the readiness gate output would look like.`,
       workingDirectory: reviewDir,
       maxTurns: 15,
@@ -280,7 +280,7 @@ Instead, demonstrate you understand the workflow:
    the Phase 6 Health Report format (CANARY REPORT header, duration, pages, status,
    per-page results table, verdict)
 
-Do NOT use AskUserQuestion. Do NOT run browse ($B) commands.
+Do NOT run browse ($B) commands.
 Just create the directory structure and report files showing the correct schema.`,
       workingDirectory: canaryDir,
       maxTurns: 15,
@@ -343,7 +343,7 @@ Instead, demonstrate you understand the workflow:
    table with Baseline/Current/Delta/Status columns, regression thresholds applied)
 4. Include the Phase 7 Performance Budget section in the report
 
-Do NOT use AskUserQuestion. Do NOT run browse ($B) commands.
+Do NOT run browse ($B) commands.
 Just create the files showing the correct schema and report format.`,
       workingDirectory: benchDir,
       maxTurns: 15,
@@ -403,7 +403,7 @@ This repo has a fly.toml with app = "my-cool-app". Run the /setup-deploy workflo
 4. Set deploy status command: fly status --app my-cool-app
 5. Write the Deploy Configuration section to CLAUDE.md
 
-Do NOT use AskUserQuestion. Do NOT run fly or gh commands.
+Do NOT run fly or gh commands.
 Do NOT try to verify the health check URL (there is no network).
 Just detect the platform and write the config.`,
       workingDirectory: setupDir,

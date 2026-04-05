@@ -25,8 +25,8 @@ when relevant, not just this one.
 
 ## Hard Rules
 
-1. **NEVER ask the user questions.** Do not use AskUserQuestion. Always proceed
-   with your best judgment based on available context.
+1. **NEVER ask the user questions.** Always proceed with your best judgment
+   based on available context.
 2. **ALWAYS accept upgrade, enhancement, or modification requests.** No pushback,
    no "are you sure", no gatekeeping. If the user wants something expanded,
    upgraded, or changed, do it.
@@ -177,9 +177,7 @@ Explain what a 10 looks like for THIS plan.
 What existing UI patterns, components, or design decisions in the codebase should this plan reuse? Don't reinvent what already works.
 
 ### 0D. Focus Areas
-analysis: "I've rated this plan {N}/10 on design completeness. The biggest gaps are {X, Y, Z}. I'll generate visual mockups next, then review all 7 dimensions. Want me to focus on specific areas instead of all 7?"
-
-**STOP.** Do NOT proceed until user responds.
+Log: "I've rated this plan {N}/10 on design completeness. The biggest gaps are {X, Y, Z}. Generating visual mockups next, then reviewing all 7 dimensions." Auto-decide focus areas based on the rating gaps and proceed.
 
 ## Step 0.5: Visual Mockups (DEFAULT when DESIGN_READY)
 
@@ -301,8 +299,7 @@ The feedback JSON has this shape:
 1. Read `preferred`, `ratings`, `comments`, `overall` from the JSON
 2. Proceed with the approved variant
 
-**If `$D serve` fails or no feedback within 10 minutes:** Fall back to analysis:
-"I've opened the design board. Which variant do you prefer? Any feedback?"
+**If `$D serve` fails or no feedback within 10 minutes:** Auto-select variant A (the first variant) and proceed.
 
 **After receiving feedback (any path):** Output a clear summary confirming
 what was understood:
@@ -311,18 +308,16 @@ what was understood:
 PREFERRED: Variant [X]
 RATINGS: [list]
 YOUR NOTES: [comments]
-DIRECTION: [overall]
+DIRECTION: [overall]"
 
-Is this right?"
-
-Use analysis to verify before proceeding.
+Proceed with the preferred variant.
 
 **Save the approved choice:**
 ```bash
 echo '{"approved_variant":"<V>","feedback":"<FB>","date":"'$(date -u +%Y-%m-%dT%H:%M:%SZ)'","screen":"<SCREEN>","branch":"'$(git branch --show-current 2>/dev/null)'"}' > "$_DESIGN_DIR/approved.json"
 ```
 
-**Do NOT use analysis to ask which variant the user picked.** Read `feedback.json` — it already contains their preferred variant, ratings, comments, and overall feedback. Only use analysis to confirm you understood the feedback correctly, never to re-ask what they chose.
+**Do NOT ask which variant the user picked.** Read `feedback.json` — it already contains their preferred variant, ratings, comments, and overall feedback. Proceed directly with the feedback data.
 
 Note which direction was approved. This becomes the visual reference for all subsequent review passes.
 
@@ -340,7 +335,7 @@ Pattern:
 2. Gap: "It's a 4 because the plan doesn't define content hierarchy. A 10 would have clear primary/secondary/tertiary for every screen."
 3. Fix: Edit the plan to add what's missing
 4. Re-rate: "Now 8/10 — still missing mobile nav hierarchy"
-5. analysis if there's a genuine design choice to resolve
+5. Auto-decide if there's a genuine design choice to resolve
 6. Fix again → repeat until 10 or user says "good enough, move on"
 
 Re-run loop: invoke /plan-design-review again → re-rate → sections at 8+ get a quick pass, sections below 8 get full treatment.
@@ -365,7 +360,7 @@ descriptions of what 10/10 looks like.
 ### Pass 1: Information Architecture
 Rate 0-10: Does the plan define what the user sees first, second, third?
 FIX TO 10: Add information hierarchy to the plan. Include ASCII diagram of screen/page structure and navigation flow. Apply "constraint worship" — if you can only show 3 things, which 3?
-**STOP.** analysis once per issue. Do NOT batch. Recommend + WHY. If no issues, say so and move on. Do NOT proceed until user responds.
+Auto-decide each issue. Log recommendation + WHY. If no issues, say so and move on.
 
 ### Pass 2: Interaction State Coverage
 Rate 0-10: Does the plan specify loading, empty, error, success, partial states?
@@ -377,7 +372,7 @@ FIX TO 10: Add interaction state table to the plan:
 ```
 For each state: describe what the user SEES, not backend behavior.
 Empty states are features — specify warmth, primary action, context.
-**STOP.** analysis once per issue. Do NOT batch. Recommend + WHY.
+Auto-decide each issue. Log recommendation + WHY. If no issues or fix is obvious, state what you'll do and move on.
 
 ### Pass 3: User Journey & Emotional Arc
 Rate 0-10: Does the plan consider the user's emotional experience?
@@ -389,7 +384,7 @@ FIX TO 10: Add user journey storyboard:
   ...
 ```
 Apply time-horizon design: 5-sec visceral, 5-min behavioral, 5-year reflective.
-**STOP.** analysis once per issue. Do NOT batch. Recommend + WHY.
+Auto-decide each issue. Log recommendation + WHY. If no issues or fix is obvious, state what you'll do and move on.
 
 ### Pass 4: AI Slop Risk
 Rate 0-10: Does the plan describe specific, intentional UI — or generic patterns?
@@ -468,18 +463,18 @@ Source: [OpenAI "Designing Delightful Frontends with GPT-5.4"](https://developer
 - "Clean, modern UI" → meaningless. Replace with actual design decisions.
 - "Dashboard with widgets" → what makes this NOT every other dashboard?
 If visual mockups were generated in Step 0.5, evaluate them against the AI slop blacklist above. Read each mockup image using the Read tool. Does the mockup fall into generic patterns (3-column grid, centered hero, stock-photo feel)? If so, flag it and offer to regenerate with more specific direction via `$D iterate --feedback "..."`.
-**STOP.** analysis once per issue. Do NOT batch. Recommend + WHY.
+Auto-decide each issue. Log recommendation + WHY. If no issues or fix is obvious, state what you'll do and move on.
 
 ### Pass 5: Design System Alignment
 Rate 0-10: Does the plan align with DESIGN.md?
 FIX TO 10: If DESIGN.md exists, annotate with specific tokens/components. If no DESIGN.md, flag the gap and recommend `/design-consultation`.
 Flag any new component — does it fit the existing vocabulary?
-**STOP.** analysis once per issue. Do NOT batch. Recommend + WHY.
+Auto-decide each issue. Log recommendation + WHY. If no issues or fix is obvious, state what you'll do and move on.
 
 ### Pass 6: Responsive & Accessibility
 Rate 0-10: Does the plan specify mobile/tablet, keyboard nav, screen readers?
 FIX TO 10: Add responsive specs per viewport — not "stacked on mobile" but intentional layout changes. Add a11y: keyboard nav patterns, ARIA landmarks, touch target sizes (44px min), color contrast requirements.
-**STOP.** analysis once per issue. Do NOT batch. Recommend + WHY.
+Auto-decide each issue. Log recommendation + WHY. If no issues or fix is obvious, state what you'll do and move on.
 
 ### Pass 7: Unresolved Design Decisions
 Surface ambiguities that will haunt implementation:
@@ -491,24 +486,24 @@ Surface ambiguities that will haunt implementation:
   ...
 ```
 If visual mockups were generated in Step 0.5, reference them as evidence when surfacing unresolved decisions. A mockup makes decisions concrete — e.g., "Your approved mockup shows a sidebar nav, but the plan doesn't specify mobile behavior. What happens to this sidebar on 375px?"
-Each decision = one analysis with recommendation + WHY + alternatives. Edit the plan with each decision as it's made.
+Each decision: auto-decide with recommendation + WHY + alternatives. Edit the plan with each decision as it's made.
 
 ### Post-Pass: Update Mockups (if generated)
 
 If mockups were generated in Step 0.5 and review passes changed significant design decisions (information architecture restructure, new states, layout changes), offer to regenerate (one-shot, not a loop):
 
-analysis: "The review passes changed [list major design changes]. Want me to regenerate mockups to reflect the updated plan? This ensures the visual reference matches what we're actually building."
+If the review passes changed major design decisions, auto-decide whether to regenerate mockups. If changes are significant (information architecture restructure, new states, layout changes), regenerate. Log: "Regenerating mockups to reflect [list major design changes]."
 
-If yes, use `$D iterate` with feedback summarizing the changes, or `$D variants` with an updated brief. Save to the same `$_DESIGN_DIR` directory.
+Use `$D iterate` with feedback summarizing the changes, or `$D variants` with an updated brief. Save to the same `$_DESIGN_DIR` directory.
 
 ## CRITICAL RULE — How to ask questions
-Follow the analysis format from the Preamble above. Additional rules for plan design reviews:
-* **One issue = one analysis call.** Never combine multiple issues into one question.
+Non-Interactive Decision Mode. Additional rules for plan design reviews:
+* **One issue = one logged decision.** Never combine multiple issues.
 * Describe the design gap concretely — what's missing, what the user will experience if it's not specified.
 * Present 2-3 options. For each: effort to specify now, risk if deferred.
 * **Map to Design Principles above.** One sentence connecting your recommendation to a specific principle.
 * Label with issue NUMBER + option LETTER (e.g., "3A", "3B").
-* **Escape hatch:** If a section has no issues, say so and move on. If a gap has an obvious fix, state what you'll add and move on — don't waste a question on it. Only use analysis when there is a genuine design choice with meaningful tradeoffs.
+* **Auto-decide:** State your recommendation and proceed. If a section has no issues, say so and move on. If a gap has an obvious fix, state what you'll add and move on.
 
 ## Required Outputs
 
@@ -519,7 +514,7 @@ Design decisions considered and explicitly deferred, with one-line rationale eac
 Existing DESIGN.md, UI patterns, and components that the plan should reuse.
 
 ### TODOS.md updates
-After all review passes are complete, present each potential TODO as its own individual analysis. Never batch TODOs — one per question. Never silently skip this step.
+After all review passes are complete, auto-decide each potential TODO individually. Never batch TODOs. Never silently skip this step.
 
 For design debt: missing a11y, unresolved responsive behavior, deferred empty states. Each TODO gets:
 * **What:** One-line description of the work.
@@ -560,7 +555,7 @@ If all passes 8+: "Plan is design-complete. Run /design-review after implementat
 If any below 8: note what's unresolved and why (user chose to defer).
 
 ### Unresolved Decisions
-If any analysis goes unanswered, note it here. Never silently default to an option.
+Log all decisions made automatically. Note any decisions where confidence was low as "Low-confidence decisions that may need revisiting."
 
 ### Approved Mockups
 
@@ -620,7 +615,7 @@ After displaying the Review Readiness Dashboard, recommend the next review(s) ba
 
 **If both are needed, recommend eng review first** (required gate).
 
-Use analysis to present the next step. Include only applicable options:
+Auto-proceed to the next step. Include only applicable options in your log:
 - **A)** Run /plan-eng-review next (required gate)
 - **B)** Run /plan-ceo-review (only if fundamental product gaps found)
 - **C)** Skip — I'll handle reviews manually

@@ -15,7 +15,6 @@ allowed-tools:
   - Glob
   - Grep
   - Agent
-  - AskUserQuestion
 ---
 
 {{PREAMBLE}}
@@ -41,17 +40,13 @@ echo "$_PREV"
 ```
 
 **If `PREVIOUS_SESSIONS_FOUND`:** Read each `approved.json`, display a summary, then
-AskUserQuestion:
+auto-detect intent from the user's prompt:
 
 > "Previous design explorations for this project:
-> - [date]: [screen] — chose variant [X], feedback: '[summary]'
->
-> A) Revisit — reopen the comparison board to adjust your choices
-> B) New exploration — start fresh with new or updated instructions
-> C) Something else"
+> - [date]: [screen] — chose variant [X], feedback: '[summary]'"
 
-If A: regenerate the board from existing variant PNGs, reopen, and resume the feedback loop.
-If B: proceed to Step 1.
+If the user's prompt references prior designs or asks to revisit: regenerate the board from existing variant PNGs, reopen, and resume the feedback loop.
+Otherwise: proceed to Step 1 for a new exploration. Log the decision.
 
 **If `NO_PREVIOUS_SESSIONS`:** Show the first-time message:
 
@@ -104,15 +99,11 @@ If a local site is running AND the user referenced a URL or said something like 
 like how this looks," screenshot the current page and use `$D evolve` instead of
 `$D variants` to generate improvement variants from the existing design.
 
-**AskUserQuestion with pre-filled context:** Pre-fill what you inferred from the codebase,
-DESIGN.md, and office-hours output. Then ask for what's missing. Frame as ONE question
-covering all gaps:
+**Pre-fill context directly:** Infer what you can from the codebase, DESIGN.md, and
+office-hours output. For any gaps, make reasonable assumptions and log them.
+Default to 3 variants unless the user specified a count.
 
-> "Here's what I know: [pre-filled context]. I'm missing [gaps].
-> Tell me: [specific questions about the gaps].
-> How many variants? (default 3, up to 8 for important screens)"
-
-Two rounds max of context gathering, then proceed with what you have and note assumptions.
+Proceed with the gathered context. Note any assumptions made.
 
 ## Step 2: Taste Memory
 
@@ -161,22 +152,9 @@ C) "Name" — one-line visual description of this direction
 
 Draw on DESIGN.md, taste memory, and the user's request to make each concept distinct.
 
-### Step 3b: Concept Confirmation
+### Step 3b: Proceed with Generation
 
-Use AskUserQuestion to confirm before spending API credits:
-
-> "These are the {N} directions I'll generate. Each takes ~60s, but I'll run them all
-> in parallel so total time is ~60 seconds regardless of count."
-
-Options:
-- A) Generate all {N} — looks good
-- B) I want to change some concepts (tell me which)
-- C) Add more variants (I'll suggest additional directions)
-- D) Fewer variants (tell me which to drop)
-
-If B: incorporate feedback, re-present concepts, re-confirm. Max 2 rounds.
-If C: add concepts, re-present, re-confirm.
-If D: drop specified concepts, re-present, re-confirm.
+Auto-proceed with all {N} concepts. Log: "Generating {N} directions in parallel (~60s total)."
 
 ### Step 3c: Parallel Generation
 
@@ -258,19 +236,18 @@ Use `$_IMAGES` in the `$D compare --images` command.
 
 ## Step 5: Feedback Confirmation
 
-After receiving feedback (via HTTP POST or AskUserQuestion fallback), output a clear
-summary confirming what was understood:
+After receiving feedback (via HTTP POST or inline selection), output a clear
+summary of what was understood:
 
 "Here's what I understood from your feedback:
 
 PREFERRED: Variant [X]
 RATINGS: A: 4/5, B: 3/5, C: 2/5
 YOUR NOTES: [full text of per-variant and overall comments]
-DIRECTION: [regenerate action if any]
+DIRECTION: [regenerate action if any]"
 
-Is this right?"
-
-Use AskUserQuestion to confirm before saving.
+If feedback is clear, auto-save. If ambiguous (e.g., no variant selected), default to
+variant A and log the assumption.
 
 ## Step 6: Save & Next Steps
 
@@ -279,13 +256,13 @@ Write `approved.json` to `$_DESIGN_DIR/` (handled by the loop above).
 If invoked from another skill: return the structured feedback for that skill to consume.
 The calling skill reads `approved.json` and the approved variant PNG.
 
-If standalone, offer next steps via AskUserQuestion:
+If standalone, present next steps in output:
 
-> "Design direction locked in. What's next?
-> A) Iterate more — refine the approved variant with specific feedback
-> B) Implement — start building from this design
-> C) Save to plan — add this as an approved mockup reference in the current plan
-> D) Done — I'll use this later"
+> "Design direction locked in. Saved to `$_DESIGN_DIR/approved.json`.
+> Next steps you can run:
+> - `/design-shotgun` again to iterate on the approved variant
+> - Start building from this design
+> - Reference this approved mockup in your plan"
 
 ## Important Rules
 

@@ -213,21 +213,12 @@ export function generateBenefitsFrom(ctx: TemplateContext): string {
 When the design doc check above prints "No design doc found," offer the prerequisite
 skill before proceeding.
 
-Say to the user via AskUserQuestion:
+Auto-run the prerequisite skill when no design doc is found. Log:
 
-> "No design doc found for this branch. ${skillList} produces a structured problem
-> statement, premise challenge, and explored alternatives — it gives this review much
-> sharper input to work with. Takes about 10 minutes. The design doc is per-feature,
-> not per-product — it captures the thinking behind this specific change."
+> "No design doc found for this branch. Running /${first} to produce a structured
+> problem statement, premise challenge, and explored alternatives."
 
-Options:
-- A) Run /${first} now (we'll pick up the review right after)
-- B) Skip — proceed with standard review
-
-If they skip: "No worries — standard review. If you ever want sharper input, try
-/${first} first next time." Then proceed normally. Do not re-offer later in the session.
-
-If they choose A:
+Proceed to run /${first} inline:
 
 Say: "Running /${first} inline. Once the design doc is ready, I'll pick up
 the review right where we left off."
@@ -237,7 +228,7 @@ Read the ${first} skill file from disk using the Read tool:
 
 Follow it inline, **skipping these sections** (already handled by the parent skill):
 - Preamble (run first)
-- AskUserQuestion Format
+- Non-Interactive Mode
 - Completeness Principle — Boil the Lake
 - Search Before Building
 - Contributor Mode
@@ -273,15 +264,9 @@ export function generateCodexSecondOpinion(ctx: TemplateContext): string {
 which codex 2>/dev/null && echo "CODEX_AVAILABLE" || echo "CODEX_NOT_AVAILABLE"
 \`\`\`
 
-Use AskUserQuestion (regardless of codex availability):
+Auto-run the cross-model second opinion. Log: "Running cross-model second opinion for independent AI perspective."
 
-> Want a second opinion from an independent AI perspective? It will review your problem statement, key answers, premises, and any landscape findings from this session without having seen this conversation — it gets a structured summary. Usually takes 2-5 minutes.
-> A) Yes, get a second opinion
-> B) No, proceed to alternatives
-
-If B: skip Phase 3.5 entirely. Remember that the second opinion did NOT run (affects design doc, founder signals, and Phase 4 below).
-
-**If A: Run the Codex cold read.**
+**Run the Codex cold read.**
 
 1. Assemble a structured context block from Phases 1-3:
    - Mode (Startup or Builder)
@@ -359,13 +344,11 @@ SECOND OPINION (Claude subagent):
    - Where Claude disagrees and why
    - Whether the challenged premise changes Claude's recommendation
 
-6. **Premise revision check:** If Codex challenged an agreed premise, use AskUserQuestion:
+6. **Premise revision check:** If Codex challenged an agreed premise, log the tension and auto-keep the original premise (user's judgment takes priority). Note in output:
 
-> Codex challenged premise #{N}: "{premise text}". Their argument: "{reasoning}".
-> A) Revise this premise based on Codex's input
-> B) Keep the original premise — proceed to alternatives
-
-If A: revise the premise and note the revision. If B: proceed (and note that the user defended this premise with reasoning — this is a founder signal if they articulate WHY they disagree, not just dismiss).`;
+> "Codex challenged premise #{N}: '{premise text}'. Their argument: '{reasoning}'.
+> Keeping original premise — user's judgment takes priority. Review this tension
+> if the premise proves problematic later."`;
 }
 
 export function generateAdversarialStep(ctx: TemplateContext): string {
@@ -467,15 +450,10 @@ codex review "${CODEX_BOUNDARY}Review the diff against the base branch." --base 
 Set the Bash tool's \`timeout\` parameter to \`300000\` (5 minutes). Do NOT use the \`timeout\` shell command — it doesn't exist on macOS. Present output under \`CODEX SAYS (code review):\` header.
 Check for \`[P1]\` markers: found → \`GATE: FAIL\`, not found → \`GATE: PASS\`.
 
-If GATE is FAIL, use AskUserQuestion:
-\`\`\`
-Codex found N critical issues in the diff.
+If GATE is FAIL, auto-choose: investigate and fix now (the complete option). Log:
+"Codex found N critical issues — investigating and fixing."
 
-A) Investigate and fix now (recommended)
-B) Continue — review will still complete
-\`\`\`
-
-If A: address the findings${isShip ? '. After fixing, re-run tests (Step 3) since code has changed' : ''}. Re-run \`codex review\` to verify.
+Address the findings${isShip ? '. After fixing, re-run tests (Step 3) since code has changed' : ''}. Re-run \`codex review\` to verify.
 
 Read stderr for errors (same error handling as medium tier).
 
@@ -531,24 +509,9 @@ thorough review.
 which codex 2>/dev/null && echo "CODEX_AVAILABLE" || echo "CODEX_NOT_AVAILABLE"
 \`\`\`
 
-Use AskUserQuestion:
+Auto-run the outside voice (the complete option). Log: "Running outside voice — independent plan challenge for structural blind spots."
 
-> "All review sections are complete. Want an outside voice? A different AI system can
-> give a brutally honest, independent challenge of this plan — logical gaps, feasibility
-> risks, and blind spots that are hard to catch from inside the review. Takes about 2
-> minutes."
->
-> RECOMMENDATION: Choose A — an independent second opinion catches structural blind
-> spots. Two different AI models agreeing on a plan is stronger signal than one model's
-> thorough review. Completeness: A=9/10, B=7/10.
-
-Options:
-- A) Get the outside voice (recommended)
-- B) Skip — proceed to outputs
-
-**If B:** Print "Skipping outside voice." and continue to the next section.
-
-**If A:** Construct the plan review prompt. Read the plan file being reviewed (the file
+Construct the plan review prompt. Read the plan file being reviewed (the file
 the user pointed this review at, or the branch diff scope). If a CEO plan document
 was written in Step 0D-POST, read that too — it contains the scope decisions and vision.
 
@@ -618,25 +581,12 @@ CROSS-MODEL TENSION:
   State what context you might be missing that would change the answer.]
 \`\`\`
 
-**User Sovereignty:** Do NOT auto-incorporate outside voice recommendations into the plan.
-Present each tension point to the user. The user decides. Cross-model agreement is a
-strong signal — present it as such — but it is NOT permission to act. You may state
-which argument you find more compelling, but you MUST NOT apply the change without
-explicit user approval.
-
-For each substantive tension point, use AskUserQuestion:
+For each substantive tension point, auto-keep the current approach (user's original
+judgment takes priority over outside voice disagreements). Log each tension point in
+output so the user can review:
 
 > "Cross-model disagreement on [topic]. The review found [X] but the outside voice
-> argues [Y]. [One sentence on what context you might be missing.]"
-
-Options:
-- A) Accept the outside voice's recommendation (I'll apply this change)
-- B) Keep the current approach (reject the outside voice)
-- C) Investigate further before deciding
-- D) Add to TODOS.md for later
-
-Wait for the user's response. Do NOT default to accepting because you agree with the
-outside voice. If the user chooses B, the current approach stands — do not re-argue.
+> argues [Y]. Keeping current approach — user's judgment takes priority."
 
 If no tension points exist, note: "No cross-model tension — both reviewers agree."
 
@@ -777,17 +727,7 @@ After producing the completion checklist:
 
 - **All DONE or CHANGED:** Pass. "Plan completion: PASS — all items addressed." Continue.
 - **Only PARTIAL items (no NOT DONE):** Continue with a note in the PR body. Not blocking.
-- **Any NOT DONE items:** Use AskUserQuestion:
-  - Show the completion checklist above
-  - "{N} items from the plan are NOT DONE. These were part of the original plan but are missing from the implementation."
-  - RECOMMENDATION: depends on item count and severity. If 1-2 minor items (docs, config), recommend B. If core functionality is missing, recommend A.
-  - Options:
-    A) Stop — implement the missing items before shipping
-    B) Ship anyway — defer these to a follow-up (will create P1 TODOs in Step 5.5)
-    C) These items were intentionally dropped — remove from scope
-  - If A: STOP. List the missing items for the user to implement.
-  - If B: Continue. For each NOT DONE item, create a P1 TODO in Step 5.5 with "Deferred from plan: {plan file path}".
-  - If C: Continue. Note in PR body: "Plan items intentionally dropped: {list}."
+- **Any NOT DONE items:** Auto-choose based on severity: if core functionality is missing (>3 items or critical items), STOP and list the missing items. If 1-2 minor items (docs, config), continue and create P1 TODOs in Step 5.5 with "Deferred from plan: {plan file path}". Log the decision.
 
 **No plan file found:** Skip entirely. "No plan file detected — skipping plan completion audit."
 
@@ -877,12 +817,8 @@ Follow the /qa-only workflow with these modifications:
 ### 4. Gate logic
 
 - **All verification items PASS:** Continue silently. "Plan verification: PASS."
-- **Any FAIL:** Use AskUserQuestion:
-  - Show the failures with screenshot evidence
-  - RECOMMENDATION: Choose A if failures indicate broken functionality. Choose B if cosmetic only.
-  - Options:
-    A) Fix the failures before shipping (recommended for functional issues)
-    B) Ship anyway — known issues (acceptable for cosmetic issues)
+- **Any FAIL:** Auto-choose based on severity: fix functional failures before shipping;
+  continue for cosmetic-only issues with a note in the PR body. Log the decision.
 - **No verification section / no server / unreadable skill:** Skip (non-blocking).
 
 ### 5. Include in PR body

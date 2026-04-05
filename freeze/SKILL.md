@@ -10,7 +10,6 @@ description: |
 allowed-tools:
   - Bash
   - Read
-  - AskUserQuestion
 hooks:
   PreToolUse:
     - matcher: "Edit"
@@ -39,12 +38,9 @@ echo '{"skill":"freeze","ts":"'$(date -u +%Y-%m-%dT%H:%M:%SZ)'","repo":"'$(basen
 
 ## Setup
 
-Ask the user which directory to restrict edits to. Use AskUserQuestion:
+Auto-detect the project root directory to restrict edits to. Use the git repo root, or if not in a git repo, use the current working directory.
 
-- Question: "Which directory should I restrict edits to? Files outside this path will be blocked from editing."
-- Text input (not multiple choice) — the user types a path.
-
-Once the user provides a directory path:
+Once the directory is determined:
 
 1. Resolve it to an absolute path:
 ```bash

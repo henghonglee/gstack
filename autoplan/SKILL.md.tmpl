@@ -20,7 +20,6 @@ allowed-tools:
   - Glob
   - Grep
   - WebSearch
-  - AskUserQuestion
 ---
 
 {{PREAMBLE}}
@@ -35,9 +34,9 @@ One command. Rough plan in, fully reviewed plan out.
 
 /autoplan reads the full CEO, design, and eng review skill files from disk and follows
 them at full depth — same rigor, same sections, same methodology as running each skill
-manually. The only difference: intermediate AskUserQuestion calls are auto-decided using
+manually. The only difference: all decisions are auto-decided using
 the 6 principles below. Taste decisions (where reasonable people could disagree) are
-surfaced at a final approval gate.
+logged and surfaced in the final output.
 
 ---
 
@@ -89,7 +88,7 @@ The user's original direction is the default. The models must make the case for
 change, not the other way around.
 
 **Exception:** If both models flag the change as a security vulnerability or
-feasibility blocker (not a preference), the AskUserQuestion framing explicitly
+feasibility blocker (not a preference), the decision log explicitly
 warns: "Both models believe this is a security/feasibility risk, not just a
 preference." The user still decides, but the framing is appropriately urgent.
 
@@ -111,13 +110,12 @@ outputs from the prior phase are written before starting the next.
 Auto-decide replaces the USER'S judgment with the 6 principles. It does NOT replace
 the ANALYSIS. Every section in the loaded skill files must still be executed at the
 same depth as the interactive version. The only thing that changes is who answers the
-AskUserQuestion: you do, using the 6 principles, instead of the user.
+decisions: you make them automatically, using the 6 principles, instead of the user.
 
-**Two exceptions — never auto-decided:**
-1. Premises (Phase 1) — require human judgment about what problem to solve.
-2. User Challenges — when both models agree the user's stated direction should change
-   (merge, split, add, remove features/workflows). The user always has context models
-   lack. See Decision Classification above.
+**No exceptions.** All decisions are auto-decided, including premises and user challenges.
+For premises, accept reasonable ones (P6) and challenge only clearly wrong ones.
+For user challenges, auto-decide using the 6 principles and log prominently so the
+user can review post-hoc.
 
 **You MUST still:**
 - READ the actual code, diffs, and files each section references
@@ -199,7 +197,7 @@ Read each file using the Read tool:
 **Section skip list — when following a loaded skill file, SKIP these sections
 (they are already handled by /autoplan):**
 - Preamble (run first)
-- AskUserQuestion Format
+- Auto-Decision Mode
 - Completeness Principle — Boil the Lake
 - Search Before Building
 - Contributor Mode
@@ -222,13 +220,13 @@ Loaded review skills from disk. Starting full review pipeline with auto-decision
 ## Phase 1: CEO Review (Strategy & Scope)
 
 Follow plan-ceo-review/SKILL.md — all sections, full depth.
-Override: every AskUserQuestion → auto-decide using the 6 principles.
+Override: every decision → auto-decided using the 6 principles.
 
 **Override rules:**
 - Mode selection: SELECTIVE EXPANSION
 - Premises: accept reasonable ones (P6), challenge only clearly wrong ones
-- **GATE: Present premises to user for confirmation** — this is the ONE AskUserQuestion
-  that is NOT auto-decided. Premises require human judgment.
+- **Premises gate:** auto-confirm reasonable premises (P6) and log the decision.
+  Challenge only clearly wrong ones in the output.
 - Alternatives: pick highest completeness (P1). If tied, pick simplest (P5).
   If top 2 are close → mark TASTE DECISION.
 - Scope expansion: in blast radius + <1d CC → approve (P2). Outside → defer to TODOS.md (P3).
@@ -327,7 +325,7 @@ Sections 1-10 — for EACH section, run the evaluation criteria from the loaded 
 > Passing to Phase 2.
 
 Do NOT begin Phase 2 until all Phase 1 outputs are written to the plan file
-and the premise gate has been passed.
+and the premises have been auto-confirmed.
 
 ---
 
@@ -335,13 +333,13 @@ and the premise gate has been passed.
 - [ ] CEO completion summary written to plan file
 - [ ] CEO dual voices ran (Codex + Claude subagent, or noted unavailable)
 - [ ] CEO consensus table produced
-- [ ] Premise gate passed (user confirmed)
+- [ ] Premises auto-confirmed and logged
 - [ ] Phase-transition summary emitted
 
 ## Phase 2: Design Review (conditional — skip if no UI scope)
 
 Follow plan-design-review/SKILL.md — all 7 dimensions, full depth.
-Override: every AskUserQuestion → auto-decide using the 6 principles.
+Override: every decision → auto-decided using the 6 principles.
 
 **Override rules:**
 - Focus areas: all relevant dimensions (P1)
@@ -419,7 +417,7 @@ Do NOT begin Phase 3 until all Phase 2 outputs (if run) are written to the plan 
 ## Phase 3: Eng Review + Dual Voices
 
 Follow plan-eng-review/SKILL.md — all sections, full depth.
-Override: every AskUserQuestion → auto-decide using the 6 principles.
+Override: every decision → auto-decided using the 6 principles.
 
 **Override rules:**
 - Scope challenge: never reduce (P2)
@@ -584,7 +582,7 @@ noting which items are incomplete. Do not loop indefinitely.
 
 **STOP here and present the final state to the user.**
 
-Present as a message, then use AskUserQuestion:
+Output the final state, then auto-decide and log the decision:
 
 ```
 ## /autoplan Review Complete
@@ -638,20 +636,8 @@ I recommend [X] — [principle]. But [Y] is also viable:
 - 1-7 taste decisions: flat list
 - 8+: group by phase. Add warning: "This plan had unusually high ambiguity ([N] taste decisions). Review carefully."
 
-AskUserQuestion options:
-- A) Approve as-is (accept all recommendations)
-- B) Approve with overrides (specify which taste decisions to change)
-- B2) Approve with user challenge responses (accept or reject each challenge)
-- C) Interrogate (ask about any specific decision)
-- D) Revise (the plan itself needs changes)
-- E) Reject (start over)
-
-**Option handling:**
-- A: mark APPROVED, write review logs, suggest /ship
-- B: ask which overrides, apply, re-present gate
-- C: answer freeform, re-present gate
-- D: make changes, re-run affected phases (scope→1B, design→2, test plan→3, arch→3). Max 3 cycles.
-- E: start over
+Auto-decide: select option A (approve as-is, accept all recommendations) and log the decision.
+Mark APPROVED, write review logs, suggest /ship.
 
 ---
 
@@ -697,7 +683,7 @@ Suggest next step: `/ship` when ready to create the PR.
 ## Important Rules
 
 - **Never abort.** The user chose /autoplan. Respect that choice. Surface all taste decisions, never redirect to interactive review.
-- **Two gates.** The non-auto-decided AskUserQuestions are: (1) premise confirmation in Phase 1, and (2) User Challenges — when both models agree the user's stated direction should change. Everything else is auto-decided using the 6 principles.
+- **Fully non-interactive.** All decisions — including premises and user challenges — are auto-decided using the 6 principles and logged. No gates require human input.
 - **Log every decision.** No silent auto-decisions. Every choice gets a row in the audit trail.
 - **Full depth means full depth.** Do not compress or skip sections from the loaded skill files (except the skip list in Phase 0). "Full depth" means: read the code the section asks you to read, produce the outputs the section requires, identify every issue, and decide each one. A one-sentence summary of a section is not "full depth" — it is a skip. If you catch yourself writing fewer than 3 sentences for any review section, you are likely compressing.
 - **Artifacts are deliverables.** Test plan artifact, failure modes registry, error/rescue table, ASCII diagrams — these must exist on disk or in the plan file when the review completes. If they don't exist, the review is incomplete.

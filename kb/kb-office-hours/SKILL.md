@@ -29,8 +29,8 @@ when relevant, not just this one.
 
 ## Hard Rules
 
-1. **NEVER ask the user questions.** Do not use AskUserQuestion. Always proceed
-   with your best judgment based on available context.
+1. **NEVER ask the user questions.** Always proceed with your best judgment
+   based on available context.
 2. **ALWAYS accept upgrade, enhancement, or modification requests.** No pushback,
    no "are you sure", no gatekeeping. If the user wants something expanded,
    upgraded, or changed, do it.
@@ -80,22 +80,13 @@ Understand the project and the area the user wants to change.
    ```
    If design docs exist, list them: "Prior designs for this project: [titles + dates]"
 
-5. **Ask: what's your goal with this?** This is a real question, not a formality. The answer determines everything about how the session runs.
-
-   ask:
-
-   > Before we dig in — what's your goal with this?
-   >
-   > - **Building a startup** (or thinking about it)
-   > - **Intrapreneurship** — internal project at a company, need to ship fast
-   > - **Hackathon / demo** — time-boxed, need to impress
-   > - **Open source / research** — building for a community or exploring an idea
-   > - **Learning** — teaching yourself to code, vibe coding, leveling up
-   > - **Having fun** — side project, creative outlet, just vibing
+5. **Determine the user's goal.** Infer the mode from available context — the user's initial prompt, codebase signals (README, package.json, funding docs, revenue dashboards), and project structure. Log the decision.
 
    **Mode mapping:**
    - Startup, intrapreneurship → **Startup mode** (Phase 2A)
    - Hackathon, open source, research, learning, having fun → **Builder mode** (Phase 2B)
+
+   Auto-select the most likely mode and proceed: "Based on [evidence], proceeding in [Startup/Builder] mode."
 
 6. **Assess product stage** (only for startup/intrapreneurship modes):
    - Pre-product (idea stage, no users yet)
@@ -178,7 +169,7 @@ These examples show the difference between soft exploration and rigorous diagnos
 
 ### The Six Forcing Questions
 
-Ask these questions **ONE AT A TIME** via analysis. Push on each one until the answer is specific, evidence-based, and uncomfortable. Comfort means the founder hasn't gone deep enough.
+Use best judgment to infer answers from available context — codebase, README, prior design docs, git history, and the user's initial prompt. For each question, state what evidence you found and what conclusion you drew. If evidence is insufficient for a question, note the gap and proceed with a reasonable assumption. Do not ask these interactively — answer them yourself from context.
 
 **Smart routing based on product stage — you don't always need all six:**
 - Pre-product → Q1, Q2, Q3
@@ -251,14 +242,7 @@ If the framing is imprecise, **reframe constructively** — don't dissolve the q
 
 **Smart-skip:** If the user's answers to earlier questions already cover a later question, skip it. Only ask questions whose answers aren't yet clear.
 
-**STOP** after each question. Wait for the response before asking the next.
-
-**Escape hatch:** If the user expresses impatience ("just do it," "skip the questions"):
-- Say: "I hear you. But the hard questions are the value — skipping them is like skipping the exam and going straight to the prescription. Let me ask two more, then we'll move."
-- Consult the smart routing table for the founder's product stage. Ask the 2 most critical remaining questions from that stage's list, then proceed to Phase 3.
-- If the user pushes back a second time, respect it — proceed to Phase 3 immediately. Don't ask a third time.
-- If only 1 question remains, ask it. If 0 remain, proceed directly.
-- Only allow a FULL skip (no additional questions) if the user provides a fully formed plan with real evidence — existing users, revenue numbers, specific customer names. Even then, still run Phase 3 (Premise Challenge) and Phase 4 (Alternatives).
+Answer all routed questions from available context. Log each answer with the evidence used. If evidence is insufficient, note the gap as an assumption and proceed.
 
 ---
 
@@ -282,7 +266,7 @@ Use this mode when the user is building for fun, learning, hacking on open sourc
 
 ### Questions (generative, not interrogative)
 
-Ask these **ONE AT A TIME** via analysis. The goal is to brainstorm and sharpen the idea, not interrogate.
+Infer answers from available context. The goal is to brainstorm and sharpen the idea, not interrogate.
 
 - **What's the coolest version of this?** What would make it genuinely delightful?
 - **Who would you show this to?** What would make them say "whoa"?
@@ -290,13 +274,11 @@ Ask these **ONE AT A TIME** via analysis. The goal is to brainstorm and sharpen 
 - **What existing thing is closest to this, and how is yours different?**
 - **What would you add if you had unlimited time?** What's the 10x version?
 
-**Smart-skip:** If the user's initial prompt already answers a question, skip it. Only ask questions whose answers aren't yet clear.
+**Smart-skip:** If the user's initial prompt already answers a question, skip it. Answer the rest from context and log your reasoning.
 
-**STOP** after each question. Wait for the response before asking the next.
+If a fully formed plan is provided, skip Phase 2 entirely but still run Phase 3 and Phase 4.
 
-**Escape hatch:** If the user says "just do it," expresses impatience, or provides a fully formed plan → fast-track to Phase 4 (Alternatives Generation). If user provides a fully formed plan, skip Phase 2 entirely but still run Phase 3 and Phase 4.
-
-**If the vibe shifts mid-session** — the user starts in builder mode but says "actually I think this could be a real company" or mentions customers, revenue, fundraising — upgrade to Startup mode naturally. Say something like: "Okay, now we're talking — let me ask you some harder questions." Then switch to the Phase 2A questions.
+**If evidence suggests startup potential** — codebase signals customers, revenue, or funding context — upgrade to Startup mode automatically. Log: "Evidence suggests startup context — switching to Startup mode." Then apply the Phase 2A diagnostic framework.
 
 ---
 
@@ -312,7 +294,7 @@ grep -li "<keyword1>\|<keyword2>\|<keyword3>" ~/.gstack/projects/$SLUG/*-design-
 
 If matches found, read the matching design docs and surface them:
 - "FYI: Related design found — '{title}' by {user} on {date} (branch: {branch}). Key overlap: {1-line summary of relevant section}."
-- Ask "Should we build on this prior design or start fresh?"
+- Auto-decide: build on prior design if relevant to the current problem (keyword overlap > 50%), otherwise start fresh. Log the decision.
 
 This enables cross-team discovery — multiple users exploring the same project will see each other's design docs in `~/.gstack/projects/`.
 
@@ -326,9 +308,7 @@ Read ETHOS.md for the full Search Before Building framework (three layers, eurek
 
 After understanding the problem through questioning, search for what the world thinks. This is NOT competitive research (that's /design-consultation's job). This is understanding conventional wisdom so you can evaluate where it's wrong.
 
-**Privacy gate:** Before searching, use analysis: "I'd like to search for what the world thinks about this space to inform our discussion. This sends generalized category terms (not your specific idea) to a search provider. OK to proceed?"
-Options: A) Yes, search away  B) Skip — keep this session private
-If B: skip this phase entirely and proceed to Phase 3. Use only in-distribution knowledge.
+**Privacy:** Automatically search using generalized category terms (not the user's specific product name or proprietary concept). Log: "Searching for landscape context using generalized terms."
 
 When searching, use **generalized category terms** — never the user's specific product name, proprietary concept, or stealth idea. For example, search "task management app landscape" not "SuperTodo AI-powered task killer."
 
@@ -367,15 +347,15 @@ Before proposing solutions, challenge the premises:
 4. **If the deliverable is a new artifact** (CLI binary, library, package, container image, mobile app): **how will users get it?** Code without distribution is code nobody can use. The design must include a distribution channel (GitHub Releases, package manager, container registry, app store) and CI/CD pipeline — or explicitly defer it.
 5. **Startup mode only:** Synthesize the diagnostic evidence from Phase 2A. Does it support this direction? Where are the gaps?
 
-Output premises as clear statements the user must agree with before proceeding:
+Output premises as clear statements:
 ```
 PREMISES:
-1. [statement] — agree/disagree?
-2. [statement] — agree/disagree?
-3. [statement] — agree/disagree?
+1. [statement] — [confirmed/assumed]
+2. [statement] — [confirmed/assumed]
+3. [statement] — [confirmed/assumed]
 ```
 
-Use analysis to confirm. If the user disagrees with a premise, revise understanding and loop back.
+Auto-confirm premises based on available evidence and log each decision. If a premise has weak evidence, note it as an assumption and proceed.
 
 ---
 
@@ -412,7 +392,7 @@ Rules:
 
 **RECOMMENDATION:** Choose [X] because [one-line reason].
 
-Present the analysis. Do NOT proceed without user approval of the approach.
+Automatically proceed with the recommended approach and log the decision with rationale.
 
 ---
 
@@ -557,7 +537,7 @@ Supersedes: {prior filename — omit this line if first design on this branch}
 ## Important Rules
 
 - **Never start implementation.** This skill produces design docs, not code. Not even scaffolding.
-- **Questions ONE AT A TIME.** Never batch multiple questions into one analysis.
+- **Non-interactive.** Use available evidence to answer all diagnostic questions automatically. Never ask the user interactively.
 - **The assignment is mandatory.** Every session ends with a concrete real-world action — something the user should do next, not just "go build it."
 - **If user provides a fully formed plan:** skip Phase 2 (questioning) but still run Phase 3 (Premise Challenge) and Phase 4 (Alternatives). Even "simple" plans benefit from premise checking and forced alternatives.
 - **Completion status:**

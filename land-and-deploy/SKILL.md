@@ -12,7 +12,6 @@ allowed-tools:
   - Read
   - Write
   - Glob
-  - AskUserQuestion
 ---
 <!-- AUTO-GENERATED from SKILL.md.tmpl — do not edit directly -->
 <!-- Regenerate: bun run gen:skill-docs -->
@@ -71,7 +70,7 @@ or invoking other gstack skills, use the `/gstack-` prefix (e.g., `/gstack-qa` i
 of `/qa`, `/gstack-ship` instead of `/ship`). Disk paths are unaffected — always use
 `~/.claude/skills/gstack/[skill-name]/SKILL.md` for reading skill files.
 
-If output shows `UPGRADE_AVAILABLE <old> <new>`: read `~/.claude/skills/gstack/gstack-upgrade/SKILL.md` and follow the "Inline upgrade flow" (auto-upgrade if configured, otherwise AskUserQuestion with 4 options, write snooze state if declined). If `JUST_UPGRADED <from> <to>`: tell user "Running gstack v{to} (just updated!)" and continue.
+If output shows `UPGRADE_AVAILABLE <old> <new>`: read `~/.claude/skills/gstack/gstack-upgrade/SKILL.md` and follow the "Inline upgrade flow" (auto-upgrade automatically). If `JUST_UPGRADED <from> <to>`: tell user "Running gstack v{to} (just updated!)" and continue.
 
 If `LAKE_INTRO` is `no`: Before continuing, introduce the Completeness Principle.
 Tell the user: "gstack follows the **Boil the Lake** principle — always do the complete
@@ -86,54 +85,23 @@ touch ~/.gstack/.completeness-intro-seen
 Only run `open` if the user says yes. Always run `touch` to mark as seen. This only happens once.
 
 If `TEL_PROMPTED` is `no` AND `LAKE_INTRO` is `yes`: After the lake intro is handled,
-ask the user about telemetry. Use AskUserQuestion:
+auto-enable community telemetry (shares usage data — which skills you use, how long they
+take, crash info — with a stable device ID; no code, file paths, or repo names are ever sent).
 
-> Help gstack get better! Community mode shares usage data (which skills you use, how long
-> they take, crash info) with a stable device ID so we can track trends and fix bugs faster.
-> No code, file paths, or repo names are ever sent.
-> Change anytime with `gstack-config set telemetry off`.
-
-Options:
-- A) Help gstack get better! (recommended)
-- B) No thanks
-
-If A: run `~/.claude/skills/gstack/bin/gstack-config set telemetry community`
-
-If B: ask a follow-up AskUserQuestion:
-
-> How about anonymous mode? We just learn that *someone* used gstack — no unique ID,
-> no way to connect sessions. Just a counter that helps us know if anyone's out there.
-
-Options:
-- A) Sure, anonymous is fine
-- B) No thanks, fully off
-
-If B→A: run `~/.claude/skills/gstack/bin/gstack-config set telemetry anonymous`
-If B→B: run `~/.claude/skills/gstack/bin/gstack-config set telemetry off`
-
-Always run:
+Run:
 ```bash
+~/.claude/skills/gstack/bin/gstack-config set telemetry community
 touch ~/.gstack/.telemetry-prompted
 ```
 
 This only happens once. If `TEL_PROMPTED` is `yes`, skip this entirely.
 
 If `PROACTIVE_PROMPTED` is `no` AND `TEL_PROMPTED` is `yes`: After telemetry is handled,
-ask the user about proactive behavior. Use AskUserQuestion:
+auto-enable proactive behavior (gstack proactively suggests skills based on context).
 
-> gstack can proactively figure out when you might need a skill while you work —
-> like suggesting /qa when you say "does this work?" or /investigate when you hit
-> a bug. We recommend keeping this on — it speeds up every part of your workflow.
-
-Options:
-- A) Keep it on (recommended)
-- B) Turn it off — I'll type /commands myself
-
-If A: run `~/.claude/skills/gstack/bin/gstack-config set proactive true`
-If B: run `~/.claude/skills/gstack/bin/gstack-config set proactive false`
-
-Always run:
+Run:
 ```bash
+~/.claude/skills/gstack/bin/gstack-config set proactive true
 touch ~/.gstack/.proactive-prompted
 ```
 
@@ -185,17 +153,12 @@ Avoid filler, throat-clearing, generic optimism, founder cosplay, and unsupporte
 
 **Final test:** does this sound like a real cross-functional builder who wants to help someone make something people want, ship it, and make it actually work?
 
-## AskUserQuestion Format
+## Non-Interactive Mode
 
-**ALWAYS follow this structure for every AskUserQuestion call:**
-1. **Re-ground:** State the project, the current branch (use the `_BRANCH` value printed by the preamble — NOT any branch from conversation history or gitStatus), and the current plan/task. (1-2 sentences)
-2. **Simplify:** Explain the problem in plain English a smart 16-year-old could follow. No raw function names, no internal jargon, no implementation details. Use concrete examples and analogies. Say what it DOES, not what it's called.
-3. **Recommend:** `RECOMMENDATION: Choose [X] because [one-line reason]` — always prefer the complete option over shortcuts (see Completeness Principle). Include `Completeness: X/10` for each option. Calibration: 10 = complete implementation (all edge cases, full coverage), 7 = covers happy path but skips some edges, 3 = shortcut that defers significant work. If both options are 8+, pick the higher; if one is ≤5, flag it.
-4. **Options:** Lettered options: `A) ... B) ... C) ...` — when an option involves effort, show both scales: `(human: ~X / CC: ~Y)`
-
-Assume the user hasn't looked at this window in 20 minutes and doesn't have the code open. If you'd need to read the source to understand your own explanation, it's too complex.
-
-Per-skill instructions may add additional formatting rules on top of this baseline.
+**NEVER ask the user questions.** Always proceed with your best judgment based on
+available context. When facing a decision point, choose the RECOMMENDED option
+automatically (prefer the complete option over shortcuts — see Completeness Principle).
+Log the decision you made and why in your output so the user can review after the fact.
 
 ## Completeness Principle — Boil the Lake
 
@@ -216,7 +179,7 @@ Include `Completeness: X/10` for each option (10=all edge cases, 7=happy path, 3
 
 `REPO_MODE` controls how to handle issues outside your branch:
 - **`solo`** — You own everything. Investigate and offer to fix proactively.
-- **`collaborative`** / **`unknown`** — Flag via AskUserQuestion, don't fix (may be someone else's).
+- **`collaborative`** / **`unknown`** — Flag in output, don't fix (may be someone else's).
 
 Always flag anything that looks wrong — one sentence, what you noticed and its impact.
 
@@ -562,8 +525,8 @@ done
 
 If `PERSISTED_PLATFORM` and `PERSISTED_URL` were found in CLAUDE.md, use them directly
 and skip manual detection. If no persisted config exists, use the auto-detected platform
-to guide deploy verification. If nothing is detected, ask the user via AskUserQuestion
-in the decision tree below.
+to guide deploy verification. If nothing is detected, suggest the user run `/setup-deploy`
+to configure deploy settings.
 
 If you want to persist deploy settings for future runs, suggest the user run `/setup-deploy`.
 
@@ -672,19 +635,18 @@ Explain in plain English: "When I merge, I'll check: has the code been reviewed 
 
 Tell the user: "That's everything I detected. Take a look at the table above — does this match how your project actually deploys?"
 
-Present the full dry-run results to the user via AskUserQuestion:
+Present the full dry-run results and auto-proceed:
 
-- **Re-ground:** "First deploy dry-run for [project] on branch [branch]. Above is what I detected about your deploy infrastructure. Nothing has been merged or deployed yet — this is just my understanding of your setup."
 - Show the infrastructure validation table from 1.5b above.
 - List any warnings from command validation, with plain-English explanations.
 - If staging was detected, note: "I found a staging environment at {url/workflow}. After we merge, I'll offer to deploy there first so you can verify everything works before it hits production."
 - If no staging was detected, note: "I didn't find a staging environment. The deploy will go straight to production — I'll run health checks right after to make sure everything looks good."
-- **RECOMMENDATION:** Choose A if all validations passed. Choose B if there are issues to fix. Choose C to run /setup-deploy for a more thorough configuration.
-- A) That's right — this is how my project deploys. Let's go. (Completeness: 10/10)
-- B) Something's off — let me tell you what's wrong (Completeness: 10/10)
-- C) I want to configure this more carefully first (runs /setup-deploy) (Completeness: 10/10)
+- Log: `[AUTO-DECISION] Deploy infrastructure validated — proceeding with detected configuration.`
+- If all validations passed: auto-proceed to Step 2.
+- If there are critical validation failures (e.g., platform CLI fails, production URL unreachable): **STOP** and report the issues. Suggest running `/setup-deploy`.
+- If there are only minor warnings: auto-proceed with warnings noted.
 
-**If A:** Tell the user: "Great — I've saved this configuration. Next time you run `/land-and-deploy`, I'll skip the dry run and go straight to readiness checks. If your deploy setup changes (new platform, different workflows, updated URLs), I'll automatically re-run the dry run to make sure I still have it right."
+Tell the user: "I've saved this configuration. Next time you run `/land-and-deploy`, I'll skip the dry run and go straight to readiness checks. If your deploy setup changes (new platform, different workflows, updated URLs), I'll automatically re-run the dry run to make sure I still have it right."
 
 Save the deploy config fingerprint so we can detect future changes:
 ```bash
@@ -694,10 +656,6 @@ WORKFLOW_HASH=$(find .github/workflows -maxdepth 1 \( -name '*deploy*' -o -name 
 echo "${CURRENT_HASH}-${WORKFLOW_HASH}" > ~/.gstack/projects/$SLUG/land-deploy-confirmed
 ```
 Continue to Step 2.
-
-**If B:** **STOP.** "Tell me what's different about your setup and I'll adjust. You can also run `/setup-deploy` to walk through the full configuration."
-
-**If C:** **STOP.** "Running `/setup-deploy` will walk through your deploy platform, production URL, and health checks in detail. It saves everything to CLAUDE.md so I'll know exactly what to do next time. Run `/land-and-deploy` again when that's done."
 
 ---
 
@@ -787,15 +745,10 @@ If not run, note as informational (not a blocker): "No adversarial review on rec
 **We are extra careful about deploys.** If engineering review is STALE (4+ commits since)
 or NOT RUN, offer to run a quick review inline before proceeding.
 
-Use AskUserQuestion:
-- **Re-ground:** "I noticed {the code review is stale / no code review has been run} on this branch. Since this code is about to go to production, I'd like to do a quick safety check on the diff before we merge. This is one of the ways I make sure nothing ships that shouldn't."
-- **RECOMMENDATION:** Choose A for a quick safety check. Choose B if you want the full
-  review experience. Choose C only if you're confident in the code.
-- A) Run a quick review (~2 min) — I'll scan the diff for common issues like SQL safety, race conditions, and security gaps (Completeness: 7/10)
-- B) Stop and run a full `/review` first — deeper analysis, more thorough (Completeness: 10/10)
-- C) Skip the review — I've reviewed this code myself and I'm confident (Completeness: 3/10)
+Auto-decide: run a quick review (~2 min) to scan the diff for common issues. Log:
+"Code review is {stale/missing} — running quick safety check before deploy."
 
-**If A (quick checklist):** Tell the user: "Running the review checklist against your diff now..."
+Tell the user: "Running the review checklist against your diff now..."
 
 Read the review checklist:
 ```bash
@@ -810,11 +763,7 @@ and tell the user: "I found and fixed a few issues during the review. The fixes 
 
 **If no issues found:** Tell the user: "Review checklist passed — no issues found in the diff."
 
-**If B:** **STOP.** "Good call — run `/review` for a thorough pre-landing review. When that's done, run `/land-and-deploy` again and I'll pick up right where we left off."
-
-**If C:** Tell the user: "Understood — skipping review. You know this code best." Continue. Log the user's choice to skip review.
-
-**If review is CURRENT:** Skip this sub-step entirely — no question asked.
+**If review is CURRENT:** Skip this sub-step entirely.
 
 ### 3.5b: Test results
 
@@ -935,27 +884,13 @@ If there are WARNINGS but no blockers: list each warning and recommend A if
 warnings are minor, or B if warnings are significant.
 If everything is green: recommend A.
 
-Use AskUserQuestion:
+Auto-decide based on the readiness report:
 
-- **Re-ground:** "Ready to merge PR #NNN — '{title}' into {base}. Here's what I found."
-  Show the report above.
-- If everything is green: "All checks passed. This PR is ready to merge."
-- If there are warnings: List each one in plain English. E.g., "The engineering review
-  was done 6 commits ago — the code has changed since then" not "STALE (6 commits)."
-- If there are blockers: "I found issues that need to be fixed before merging: {list}"
-- **RECOMMENDATION:** Choose A if green. Choose B if there are significant warnings.
-  Choose C only if the user understands the risks.
-- A) Merge it — everything looks good (Completeness: 10/10)
-- B) Hold off — I want to fix the warnings first (Completeness: 10/10)
-- C) Merge anyway — I understand the warnings and want to proceed (Completeness: 3/10)
+- If everything is green: Log `[AUTO-DECISION] All readiness checks passed — proceeding with merge.` Continue to Step 4.
+- If there are warnings but no blockers: Log each warning, then auto-proceed. Log: `[AUTO-DECISION] N warnings present but no blockers — proceeding with merge.`
+- If there are blockers (failing free tests): **STOP.** List the blockers and give specific next steps to fix them.
 
-If the user chooses B: **STOP.** Give specific next steps:
-- If reviews are stale: "Run `/review` or `/autoplan` to review the current code, then `/land-and-deploy` again."
-- If E2E not run: "Run your E2E tests to make sure nothing is broken, then come back."
-- If docs not updated: "Run `/document-release` to update CHANGELOG and docs."
-- If PR body stale: "The PR description doesn't match what's actually in the diff — update it on GitHub."
-
-If the user chooses A or C: Tell the user "Merging now." Continue to Step 4.
+If auto-proceeding (no blockers): Tell the user "Merging now." Continue to Step 4.
 
 ---
 
@@ -1062,8 +997,8 @@ done
 
 If `PERSISTED_PLATFORM` and `PERSISTED_URL` were found in CLAUDE.md, use them directly
 and skip manual detection. If no persisted config exists, use the auto-detected platform
-to guide deploy verification. If nothing is detected, ask the user via AskUserQuestion
-in the decision tree below.
+to guide deploy verification. If nothing is detected, suggest the user run `/setup-deploy`
+to configure deploy settings.
 
 If you want to persist deploy settings for future runs, suggest the user run `/setup-deploy`.
 
@@ -1086,39 +1021,21 @@ Look for workflow names containing "deploy", "release", "production", or "cd". I
 
 3. If SCOPE_DOCS is the only scope that's true (no frontend, no backend, no config): skip verification entirely. Tell the user: "This was a docs-only change — nothing to deploy or verify. You're all set." Go to Step 9.
 
-4. If no deploy workflows detected and no URL provided: use AskUserQuestion once:
-   - **Re-ground:** "PR is merged, but I don't see a deploy workflow or a production URL for this project. If this is a web app, I can verify the deploy if you give me the URL. If it's a library or CLI tool, there's nothing to verify — we're done."
-   - **RECOMMENDATION:** Choose B if this is a library/CLI tool. Choose A if this is a web app.
-   - A) Here's the production URL: {let them type it}
-   - B) No deploy needed — this isn't a web app
+4. If no deploy workflows detected and no URL provided: auto-detect the project type. If `package.json` has `"bin"`, or `*.gemspec` exists, or `Cargo.toml` has `[[bin]]`, or `setup.py`/`pyproject.toml` exists with no web framework — treat as library/CLI tool and skip verification. Log: `[AUTO-DECISION] No deploy workflow or production URL detected — project appears to be a library/CLI tool. Skipping deploy verification.` Go to Step 9. Otherwise, log: `[AUTO-DECISION] No deploy workflow or production URL detected — cannot verify deploy. Proceeding without verification.` Go to Step 9.
 
 ### 5a: Staging-first option
 
 If staging was detected in Step 1.5c (or from CLAUDE.md deploy config), and the changes
 include code (not docs-only), offer the staging-first option:
 
-Use AskUserQuestion:
-- **Re-ground:** "I found a staging environment at {staging URL or workflow}. Since this deploy includes code changes, I can verify everything works on staging first — before it hits production. This is the safest path: if something breaks on staging, production is untouched."
-- **RECOMMENDATION:** Choose A for maximum safety. Choose B if you're confident.
-- A) Deploy to staging first, verify it works, then go to production (Completeness: 10/10)
-- B) Skip staging — go straight to production (Completeness: 7/10)
-- C) Deploy to staging only — I'll check production later (Completeness: 8/10)
+Auto-decide: deploy to staging first for maximum safety. Log: `[AUTO-DECISION] Staging environment detected at {staging URL or workflow} — deploying to staging first, then production.`
 
-**If A (staging first):** Tell the user: "Deploying to staging first. I'll run the same health checks I'd run on production — if staging looks good, I'll move on to production automatically."
+Tell the user: "Deploying to staging first. I'll run the same health checks I'd run on production — if staging looks good, I'll move on to production automatically."
 
 Run Steps 6-7 against the staging target first. Use the staging
 URL or staging workflow for deploy verification and canary checks. After staging passes,
 tell the user: "Staging is healthy — your changes are working. Now deploying to production." Then run
 Steps 6-7 again against the production target.
-
-**If B (skip staging):** Tell the user: "Skipping staging — going straight to production." Proceed with production deployment as normal.
-
-**If C (staging only):** Tell the user: "Deploying to staging only. I'll verify it works and stop there."
-
-Run Steps 6-7 against the staging target. After verification,
-print the deploy report (Step 9) with verdict "STAGING VERIFIED — production deploy pending."
-Then tell the user: "Staging looks good. When you're ready for production, run `/land-and-deploy` again."
-**STOP.** The user can re-run `/land-and-deploy` later for production.
 
 **If no staging detected:** Skip this sub-step entirely. No question asked.
 
@@ -1178,12 +1095,11 @@ Record deploy start time. Show progress every 2 minutes: "Deploy is still runnin
 
 If deploy succeeds (`conclusion` is `success` or health check passes): Tell the user "Deploy finished successfully. Took {duration}. Now I'll verify the site is healthy." Record deploy duration, continue to Step 7.
 
-If deploy fails (`conclusion` is `failure`): use AskUserQuestion:
-- **Re-ground:** "The deploy workflow failed after the merge. The code is merged but may not be live yet. Here's what I can do:"
-- **RECOMMENDATION:** Choose A to investigate before reverting.
-- A) Let me look at the deploy logs to figure out what went wrong
-- B) Revert the merge immediately — roll back to the previous version
-- C) Continue to health checks anyway — the deploy failure might be a flaky step, and the site might actually be fine
+If deploy fails (`conclusion` is `failure`): Log the failure prominently: `[DEPLOY FAILED] The deploy workflow failed after merge. Investigating before deciding next steps.` Auto-retry once by re-running the failed workflow:
+```bash
+gh run rerun <run-id> --failed 2>/dev/null
+```
+If the retry also fails: log `[DEPLOY FAILED] Retry also failed — investigating deploy logs.` Read the deploy logs (`gh run view <run-id> --log-failed 2>/dev/null | tail -50`) and report the failure details. Then **STOP** with the evidence and recommend either reverting or manual investigation.
 
 If timeout (20 min): "The deploy has been running for 20 minutes, which is longer than most deploys take. The site might still be deploying, or something might be stuck." Ask whether to continue waiting or skip verification.
 
@@ -1243,12 +1159,10 @@ Take an annotated screenshot as evidence.
 
 If all pass: Tell the user "Site is healthy. Page loaded in {X}s, no console errors, content looks good. Screenshot saved to {path}." Mark as HEALTHY, continue to Step 9.
 
-If any fail: show the evidence (screenshot path, console errors, perf numbers). Use AskUserQuestion:
-- **Re-ground:** "I found some issues on the live site after the deploy. Here's what I see: {specific issues}. This might be temporary (caches clearing, CDN propagating) or it might be a real problem."
-- **RECOMMENDATION:** Choose based on severity — B for critical (site down), A for minor (console errors).
-- A) That's expected — the site is still warming up. Mark it as healthy.
-- B) That's broken — revert the merge and roll back to the previous version
-- C) Let me investigate more — open the site and look at logs before deciding
+If any fail: show the evidence (screenshot path, console errors, perf numbers). Auto-decide based on severity:
+- **Critical failure** (site down, 5xx status, page blank): Log `[CANARY FAILED] Critical issue detected — site appears down. Recommending revert.` **STOP** and recommend reverting. Show the evidence.
+- **Minor issues** (console errors but page loads, slow but functional): Log `[CANARY WARNING] Minor issues detected post-deploy — {specific issues}. Marking as DEGRADED.` Mark as DEGRADED and continue to Step 9. Note the issues in the deploy report.
+- **Ambiguous** (page loads but content looks different than expected): Log `[CANARY WARNING] Ambiguous post-deploy state — {details}. Marking as DEGRADED.` Mark as DEGRADED and continue.
 
 ---
 

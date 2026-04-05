@@ -232,17 +232,17 @@ describe('gen-skill-docs', () => {
     expect(content).toContain('git branch --show-current');
   });
 
-  test('tier 2+ skills contain ELI16 simplification rules (AskUserQuestion format)', () => {
-    // Root SKILL.md is tier 1 (no AskUserQuestion format). Check a tier 2+ skill instead.
+  test('tier 2+ skills contain non-interactive mode (Non-Interactive Mode)', () => {
+    // Root SKILL.md is tier 1 (no Non-Interactive Mode section). Check a tier 2+ skill instead.
     const content = fs.readFileSync(path.join(ROOT, 'cso', 'SKILL.md'), 'utf-8');
-    expect(content).toContain('No raw function names');
-    expect(content).toContain('plain English');
+    expect(content).toContain('## Non-Interactive Mode');
+    expect(content).toContain('RECOMMENDED option');
   });
 
-  test('tier 1 skills do NOT contain AskUserQuestion format', () => {
+  test('tier 1 skills do NOT contain Non-Interactive Mode section', () => {
     // Use benchmark (tier 1) instead of root — root SKILL.md gets overwritten by Codex test setup
     const content = fs.readFileSync(path.join(ROOT, 'benchmark', 'SKILL.md'), 'utf-8');
-    expect(content).not.toContain('## AskUserQuestion Format');
+    expect(content).not.toContain('## Non-Interactive Mode');
     expect(content).not.toContain('## Completeness Principle');
   });
 
@@ -796,9 +796,8 @@ describe('PLAN_COMPLETION_AUDIT placeholders', () => {
 
   test('ship mode has gate logic for NOT DONE items', () => {
     expect(shipSkill).toContain('NOT DONE');
-    expect(shipSkill).toContain('Stop — implement the missing items');
-    expect(shipSkill).toContain('Ship anyway — defer');
-    expect(shipSkill).toContain('intentionally dropped');
+    expect(shipSkill).toContain('STOP');
+    expect(shipSkill).toContain('P1 TODO');
   });
 
   test('review mode is INFORMATIONAL only', () => {
@@ -1022,8 +1021,8 @@ describe('CODEX_SECOND_OPINION resolver', () => {
     expect(content).toContain('codex exec');
   });
 
-  test('contains opt-in AskUserQuestion text', () => {
-    expect(content).toContain('second opinion from an independent AI perspective');
+  test('contains cross-model second opinion text', () => {
+    expect(content).toContain('cross-model second opinion');
   });
 
   test('contains cross-model synthesis instructions', () => {
@@ -1135,8 +1134,8 @@ describe('BENEFITS_FROM resolver', () => {
     expect(engContent).toContain('/office-hours');
   });
 
-  test('offer includes graceful decline', () => {
-    expect(ceoContent).toContain('No worries');
+  test('offer auto-runs prerequisite skill', () => {
+    expect(ceoContent).toContain('Auto-run the prerequisite skill');
   });
 
   test('skills without benefits-from do NOT have prerequisite offer', () => {
@@ -1238,7 +1237,7 @@ describe('DESIGN_SKETCH extended with outside voices', () => {
     expect(content).toContain('Outside design voices');
   });
 
-  test('offers opt-in via AskUserQuestion', () => {
+  test('offers opt-in for outside design perspectives', () => {
     expect(content).toContain('outside design perspectives');
   });
 
@@ -1843,13 +1842,10 @@ describe('telemetry', () => {
     expect(content).toContain('gstack-config get telemetry');
   });
 
-  test('generated SKILL.md contains telemetry opt-in prompt', () => {
+  test('generated SKILL.md contains telemetry auto-enable', () => {
     const content = fs.readFileSync(path.join(ROOT, 'SKILL.md'), 'utf-8');
     expect(content).toContain('.telemetry-prompted');
-    expect(content).toContain('Help gstack get better');
     expect(content).toContain('gstack-config set telemetry community');
-    expect(content).toContain('gstack-config set telemetry anonymous');
-    expect(content).toContain('gstack-config set telemetry off');
   });
 
   test('generated SKILL.md contains telemetry epilogue', () => {
