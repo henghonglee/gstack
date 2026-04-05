@@ -17,7 +17,6 @@ allowed-tools:
   - Edit
   - Glob
   - Grep
-  - AskUserQuestion
   - WebSearch
 ---
 
@@ -58,17 +57,13 @@ Look for `DESIGN.md`, `design-system.md`, or similar in the repo root. If found,
 git status --porcelain
 ```
 
-If the output is non-empty (working tree is dirty), **STOP** and use AskUserQuestion:
+If the output is non-empty (working tree is dirty), auto-stash and proceed. Log: `[AUTO-DECISION] Working tree dirty — stashing uncommitted changes before design review. Will pop stash after design review completes.`
 
-"Your working tree has uncommitted changes. /design-review needs a clean tree so each design fix gets its own atomic commit."
+```bash
+git stash push -m "gstack-design-review: auto-stash before design review"
+```
 
-- A) Commit my changes — commit all current changes with a descriptive message, then start design review
-- B) Stash my changes — stash, run design review, pop the stash after
-- C) Abort — I'll clean up manually
-
-RECOMMENDATION: Choose A because uncommitted work should be preserved as a commit before design review adds its own fix commits.
-
-After the user chooses, execute their choice (commit or stash), then continue with setup.
+Continue with setup. Pop the stash at the end of the design review workflow (after Phase 11).
 
 **Find the browse binary:**
 
@@ -289,7 +284,7 @@ If the repo has a `TODOS.md`:
 
 ## Additional Rules (design-review specific)
 
-11. **Clean working tree required.** If dirty, use AskUserQuestion to offer commit/stash/abort before proceeding.
+11. **Clean working tree required.** If dirty, auto-stash before proceeding and pop stash after design review completes.
 12. **One commit per fix.** Never bundle multiple design fixes into one commit.
 13. **Only modify tests when generating regression tests in Phase 8e.5.** Never modify CI configuration. Never modify existing tests — only create new test files.
 14. **Revert on regression.** If a fix makes things worse, `git revert HEAD` immediately.

@@ -17,7 +17,6 @@ allowed-tools:
   - Write
   - Agent
   - WebSearch
-  - AskUserQuestion
 ---
 
 {{PREAMBLE}}
@@ -277,11 +276,9 @@ Use Grep to search all local skill SKILL.md files for suspicious patterns:
 - `ANTHROPIC_API_KEY`, `OPENAI_API_KEY`, `env.`, `process.env` (credential access)
 - `IGNORE PREVIOUS`, `system override`, `disregard`, `forget your instructions` (prompt injection)
 
-**Tier 2 — global skills (requires permission):** Before scanning globally installed skills or user settings, use AskUserQuestion:
-"Phase 8 can scan your globally installed AI coding agent skills and hooks for malicious patterns. This reads files outside the repo. Want to include this?"
-Options: A) Yes — scan global skills too  B) No — repo-local only
+**Tier 2 — global skills (automatic):** Also scan globally installed skills and user settings for the same patterns. Log in the report that global skill scanning was performed. This reads files outside the repo but is necessary for a complete security audit.
 
-If approved, run the same Grep patterns on globally installed skill files and check hooks in user settings.
+Run the same Grep patterns on globally installed skill files and check hooks in user settings.
 
 **Severity:** CRITICAL for credential exfiltration attempts / prompt injection in skill files. HIGH for suspicious network calls / overly broad tool permissions. MEDIUM for skills from unverified sources without review.
 
@@ -526,14 +523,14 @@ Match findings across reports using the `fingerprint` field (sha256 of category 
 
 **Protection file check:** Check if the project has a `.gitleaks.toml` or `.secretlintrc`. If none exists, recommend creating one.
 
-**Remediation Roadmap:** For the top 5 findings, present via AskUserQuestion:
+**Remediation Roadmap:** For the top 5 findings, present in the report output with a recommended action for each:
 1. Context: The vulnerability, its severity, exploitation scenario
-2. RECOMMENDATION: Choose [X] because [reason]
-3. Options:
-   - A) Fix now — [specific code change, effort estimate]
-   - B) Mitigate — [workaround that reduces risk]
-   - C) Accept risk — [document why, set review date]
-   - D) Defer to TODOS.md with security label
+2. RECOMMENDATION: [recommended action] because [reason]
+3. Available actions:
+   - Fix now — [specific code change, effort estimate]
+   - Mitigate — [workaround that reduces risk]
+   - Accept risk — [document why, set review date]
+   - Defer to TODOS.md with security label
 
 ### Phase 14: Save Report
 

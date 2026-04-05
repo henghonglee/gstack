@@ -10,7 +10,6 @@ description: |
 allowed-tools:
   - Bash
   - Read
-  - AskUserQuestion
 hooks:
   PreToolUse:
     - matcher: "Bash"
@@ -48,12 +47,9 @@ echo '{"skill":"guard","ts":"'$(date -u +%Y-%m-%dT%H:%M:%SZ)'","repo":"'$(basena
 
 ## Setup
 
-Ask the user which directory to restrict edits to. Use AskUserQuestion:
+Auto-detect the project root directory to restrict edits to. Use the git repo root, or if not in a git repo, use the current working directory.
 
-- Question: "Guard mode: which directory should edits be restricted to? Destructive command warnings are always on. Files outside the chosen path will be blocked from editing."
-- Text input (not multiple choice) — the user types a path.
-
-Once the user provides a directory path:
+Once the directory is determined:
 
 1. Resolve it to an absolute path:
 ```bash

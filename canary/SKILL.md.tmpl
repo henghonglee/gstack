@@ -13,7 +13,6 @@ allowed-tools:
   - Read
   - Write
   - Glob
-  - AskUserQuestion
 ---
 
 {{PREAMBLE}}
@@ -96,14 +95,15 @@ $B links
 $B snapshot -i
 ```
 
-Extract the top 5 internal navigation links from the `links` output. Always include the homepage. Present the page list via AskUserQuestion:
+Extract the top 5 internal navigation links from the `links` output. Always include the homepage. Auto-proceed with the detected pages and log the decision:
 
-- **Context:** Monitoring the production site at the given URL after a deploy.
-- **Question:** Which pages should the canary monitor?
-- **RECOMMENDATION:** Choose A — these are the main navigation targets.
-- A) Monitor these pages: [list the discovered pages]
-- B) Add more pages (user specifies)
-- C) Monitor homepage only (quick check)
+```
+Canary will monitor these pages (auto-detected from navigation):
+  1. / (homepage)
+  2. [detected page 2]
+  3. [detected page 3]
+  ...
+```
 
 ### Phase 4: Pre-Deploy Snapshot (if no baseline exists)
 
@@ -142,7 +142,7 @@ After each check, compare results against the baseline (or pre-deploy snapshot):
 
 **Don't cry wolf.** Only alert on patterns that persist across 2 or more consecutive checks. A single transient network blip is not an alert.
 
-**If a CRITICAL or HIGH alert is detected**, immediately notify the user via AskUserQuestion:
+**If a CRITICAL or HIGH alert is detected**, log it prominently in output and auto-decide:
 
 ```
 CANARY ALERT
@@ -154,14 +154,13 @@ Finding:  [what changed — be specific]
 Evidence: [screenshot path]
 Baseline: [baseline value]
 Current:  [current value]
+
+Decision: [auto-decided action based on severity]
 ```
 
-- **Context:** Canary monitoring detected an issue on [page] after [duration].
-- **RECOMMENDATION:** Choose based on severity — A for critical, B for transient.
-- A) Investigate now — stop monitoring, focus on this issue
-- B) Continue monitoring — this might be transient (wait for next check)
-- C) Rollback — revert the deploy immediately
-- D) Dismiss — false positive, continue monitoring
+- **CRITICAL alerts:** Continue monitoring to confirm persistence (2+ consecutive checks), then stop and investigate if confirmed.
+- **HIGH alerts:** Continue monitoring. Flag in the final report if persistent.
+- **Transient alerts (single occurrence):** Log and continue — do not escalate.
 
 ### Phase 6: Health Report
 

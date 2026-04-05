@@ -15,7 +15,6 @@ allowed-tools:
   - Glob
   - Grep
   - Agent
-  - AskUserQuestion
 ---
 <!-- AUTO-GENERATED from SKILL.md.tmpl — do not edit directly -->
 <!-- Regenerate: bun run gen:skill-docs -->
@@ -74,7 +73,7 @@ or invoking other gstack skills, use the `/gstack-` prefix (e.g., `/gstack-qa` i
 of `/qa`, `/gstack-ship` instead of `/ship`). Disk paths are unaffected — always use
 `~/.claude/skills/gstack/[skill-name]/SKILL.md` for reading skill files.
 
-If output shows `UPGRADE_AVAILABLE <old> <new>`: read `~/.claude/skills/gstack/gstack-upgrade/SKILL.md` and follow the "Inline upgrade flow" (auto-upgrade if configured, otherwise AskUserQuestion with 4 options, write snooze state if declined). If `JUST_UPGRADED <from> <to>`: tell user "Running gstack v{to} (just updated!)" and continue.
+If output shows `UPGRADE_AVAILABLE <old> <new>`: read `~/.claude/skills/gstack/gstack-upgrade/SKILL.md` and follow the "Inline upgrade flow" (auto-upgrade automatically). If `JUST_UPGRADED <from> <to>`: tell user "Running gstack v{to} (just updated!)" and continue.
 
 If `LAKE_INTRO` is `no`: Before continuing, introduce the Completeness Principle.
 Tell the user: "gstack follows the **Boil the Lake** principle — always do the complete
@@ -89,54 +88,23 @@ touch ~/.gstack/.completeness-intro-seen
 Only run `open` if the user says yes. Always run `touch` to mark as seen. This only happens once.
 
 If `TEL_PROMPTED` is `no` AND `LAKE_INTRO` is `yes`: After the lake intro is handled,
-ask the user about telemetry. Use AskUserQuestion:
+auto-enable community telemetry (shares usage data — which skills you use, how long they
+take, crash info — with a stable device ID; no code, file paths, or repo names are ever sent).
 
-> Help gstack get better! Community mode shares usage data (which skills you use, how long
-> they take, crash info) with a stable device ID so we can track trends and fix bugs faster.
-> No code, file paths, or repo names are ever sent.
-> Change anytime with `gstack-config set telemetry off`.
-
-Options:
-- A) Help gstack get better! (recommended)
-- B) No thanks
-
-If A: run `~/.claude/skills/gstack/bin/gstack-config set telemetry community`
-
-If B: ask a follow-up AskUserQuestion:
-
-> How about anonymous mode? We just learn that *someone* used gstack — no unique ID,
-> no way to connect sessions. Just a counter that helps us know if anyone's out there.
-
-Options:
-- A) Sure, anonymous is fine
-- B) No thanks, fully off
-
-If B→A: run `~/.claude/skills/gstack/bin/gstack-config set telemetry anonymous`
-If B→B: run `~/.claude/skills/gstack/bin/gstack-config set telemetry off`
-
-Always run:
+Run:
 ```bash
+~/.claude/skills/gstack/bin/gstack-config set telemetry community
 touch ~/.gstack/.telemetry-prompted
 ```
 
 This only happens once. If `TEL_PROMPTED` is `yes`, skip this entirely.
 
 If `PROACTIVE_PROMPTED` is `no` AND `TEL_PROMPTED` is `yes`: After telemetry is handled,
-ask the user about proactive behavior. Use AskUserQuestion:
+auto-enable proactive behavior (gstack proactively suggests skills based on context).
 
-> gstack can proactively figure out when you might need a skill while you work —
-> like suggesting /qa when you say "does this work?" or /investigate when you hit
-> a bug. We recommend keeping this on — it speeds up every part of your workflow.
-
-Options:
-- A) Keep it on (recommended)
-- B) Turn it off — I'll type /commands myself
-
-If A: run `~/.claude/skills/gstack/bin/gstack-config set proactive true`
-If B: run `~/.claude/skills/gstack/bin/gstack-config set proactive false`
-
-Always run:
+Run:
 ```bash
+~/.claude/skills/gstack/bin/gstack-config set proactive true
 touch ~/.gstack/.proactive-prompted
 ```
 
@@ -188,17 +156,12 @@ Avoid filler, throat-clearing, generic optimism, founder cosplay, and unsupporte
 
 **Final test:** does this sound like a real cross-functional builder who wants to help someone make something people want, ship it, and make it actually work?
 
-## AskUserQuestion Format
+## Non-Interactive Mode
 
-**ALWAYS follow this structure for every AskUserQuestion call:**
-1. **Re-ground:** State the project, the current branch (use the `_BRANCH` value printed by the preamble — NOT any branch from conversation history or gitStatus), and the current plan/task. (1-2 sentences)
-2. **Simplify:** Explain the problem in plain English a smart 16-year-old could follow. No raw function names, no internal jargon, no implementation details. Use concrete examples and analogies. Say what it DOES, not what it's called.
-3. **Recommend:** `RECOMMENDATION: Choose [X] because [one-line reason]` — always prefer the complete option over shortcuts (see Completeness Principle). Include `Completeness: X/10` for each option. Calibration: 10 = complete implementation (all edge cases, full coverage), 7 = covers happy path but skips some edges, 3 = shortcut that defers significant work. If both options are 8+, pick the higher; if one is ≤5, flag it.
-4. **Options:** Lettered options: `A) ... B) ... C) ...` — when an option involves effort, show both scales: `(human: ~X / CC: ~Y)`
-
-Assume the user hasn't looked at this window in 20 minutes and doesn't have the code open. If you'd need to read the source to understand your own explanation, it's too complex.
-
-Per-skill instructions may add additional formatting rules on top of this baseline.
+**NEVER ask the user questions.** Always proceed with your best judgment based on
+available context. When facing a decision point, choose the RECOMMENDED option
+automatically (prefer the complete option over shortcuts — see Completeness Principle).
+Log the decision you made and why in your output so the user can review after the fact.
 
 ## Completeness Principle — Boil the Lake
 
@@ -389,17 +352,13 @@ echo "$_PREV"
 ```
 
 **If `PREVIOUS_SESSIONS_FOUND`:** Read each `approved.json`, display a summary, then
-AskUserQuestion:
+auto-detect intent from the user's prompt:
 
 > "Previous design explorations for this project:
-> - [date]: [screen] — chose variant [X], feedback: '[summary]'
->
-> A) Revisit — reopen the comparison board to adjust your choices
-> B) New exploration — start fresh with new or updated instructions
-> C) Something else"
+> - [date]: [screen] — chose variant [X], feedback: '[summary]'"
 
-If A: regenerate the board from existing variant PNGs, reopen, and resume the feedback loop.
-If B: proceed to Step 1.
+If the user's prompt references prior designs or asks to revisit: regenerate the board from existing variant PNGs, reopen, and resume the feedback loop.
+Otherwise: proceed to Step 1 for a new exploration. Log the decision.
 
 **If `NO_PREVIOUS_SESSIONS`:** Show the first-time message:
 
@@ -452,15 +411,11 @@ If a local site is running AND the user referenced a URL or said something like 
 like how this looks," screenshot the current page and use `$D evolve` instead of
 `$D variants` to generate improvement variants from the existing design.
 
-**AskUserQuestion with pre-filled context:** Pre-fill what you inferred from the codebase,
-DESIGN.md, and office-hours output. Then ask for what's missing. Frame as ONE question
-covering all gaps:
+**Pre-fill context directly:** Infer what you can from the codebase, DESIGN.md, and
+office-hours output. For any gaps, make reasonable assumptions and log them.
+Default to 3 variants unless the user specified a count.
 
-> "Here's what I know: [pre-filled context]. I'm missing [gaps].
-> Tell me: [specific questions about the gaps].
-> How many variants? (default 3, up to 8 for important screens)"
-
-Two rounds max of context gathering, then proceed with what you have and note assumptions.
+Proceed with the gathered context. Note any assumptions made.
 
 ## Step 2: Taste Memory
 
@@ -509,22 +464,9 @@ C) "Name" — one-line visual description of this direction
 
 Draw on DESIGN.md, taste memory, and the user's request to make each concept distinct.
 
-### Step 3b: Concept Confirmation
+### Step 3b: Proceed with Generation
 
-Use AskUserQuestion to confirm before spending API credits:
-
-> "These are the {N} directions I'll generate. Each takes ~60s, but I'll run them all
-> in parallel so total time is ~60 seconds regardless of count."
-
-Options:
-- A) Generate all {N} — looks good
-- B) I want to change some concepts (tell me which)
-- C) Add more variants (I'll suggest additional directions)
-- D) Fewer variants (tell me which to drop)
-
-If B: incorporate feedback, re-present concepts, re-confirm. Max 2 rounds.
-If C: add concepts, re-present, re-confirm.
-If D: drop specified concepts, re-present, re-confirm.
+Auto-proceed with all {N} concepts. Log: "Generating {N} directions in parallel (~60s total)."
 
 ### Step 3c: Parallel Generation
 
@@ -666,8 +608,7 @@ The feedback JSON has this shape:
 1. Read `preferred`, `ratings`, `comments`, `overall` from the JSON
 2. Proceed with the approved variant
 
-**If `$D serve` fails or no feedback within 10 minutes:** Fall back to AskUserQuestion:
-"I've opened the design board. Which variant do you prefer? Any feedback?"
+**If `$D serve` fails or no feedback within 10 minutes:** Auto-select variant A (the first variant) and proceed.
 
 **After receiving feedback (any path):** Output a clear summary confirming
 what was understood:
@@ -676,11 +617,9 @@ what was understood:
 PREFERRED: Variant [X]
 RATINGS: [list]
 YOUR NOTES: [comments]
-DIRECTION: [overall]
+DIRECTION: [overall]"
 
-Is this right?"
-
-Use AskUserQuestion to verify before proceeding.
+Proceed with the preferred variant.
 
 **Save the approved choice:**
 ```bash
@@ -689,19 +628,18 @@ echo '{"approved_variant":"<V>","feedback":"<FB>","date":"'$(date -u +%Y-%m-%dT%
 
 ## Step 5: Feedback Confirmation
 
-After receiving feedback (via HTTP POST or AskUserQuestion fallback), output a clear
-summary confirming what was understood:
+After receiving feedback (via HTTP POST or inline selection), output a clear
+summary of what was understood:
 
 "Here's what I understood from your feedback:
 
 PREFERRED: Variant [X]
 RATINGS: A: 4/5, B: 3/5, C: 2/5
 YOUR NOTES: [full text of per-variant and overall comments]
-DIRECTION: [regenerate action if any]
+DIRECTION: [regenerate action if any]"
 
-Is this right?"
-
-Use AskUserQuestion to confirm before saving.
+If feedback is clear, auto-save. If ambiguous (e.g., no variant selected), default to
+variant A and log the assumption.
 
 ## Step 6: Save & Next Steps
 
@@ -710,13 +648,13 @@ Write `approved.json` to `$_DESIGN_DIR/` (handled by the loop above).
 If invoked from another skill: return the structured feedback for that skill to consume.
 The calling skill reads `approved.json` and the approved variant PNG.
 
-If standalone, offer next steps via AskUserQuestion:
+If standalone, present next steps in output:
 
-> "Design direction locked in. What's next?
-> A) Iterate more — refine the approved variant with specific feedback
-> B) Implement — start building from this design
-> C) Save to plan — add this as an approved mockup reference in the current plan
-> D) Done — I'll use this later"
+> "Design direction locked in. Saved to `$_DESIGN_DIR/approved.json`.
+> Next steps you can run:
+> - `/design-shotgun` again to iterate on the approved variant
+> - Start building from this design
+> - Reference this approved mockup in your plan"
 
 ## Important Rules
 

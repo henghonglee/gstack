@@ -10,7 +10,6 @@ description: |
 allowed-tools:
   - Bash
   - Read
-  - AskUserQuestion
 
 ---
 
@@ -94,7 +93,7 @@ echo "EXTENSION_PATH: ${_EXT_PATH:-NOT FOUND}"
 
 ## Step 3: Guide the user to the Side Panel
 
-Use AskUserQuestion:
+Tell the user:
 
 > Chrome is launched with gstack control. You should see Playwright's Chromium
 > (not your regular Chrome) with a golden shimmer line at the top of the page.
@@ -109,12 +108,7 @@ Use AskUserQuestion:
 > **Port:** 34567 (auto-detected — the extension connects automatically in the
 > Playwright-controlled Chrome).
 
-Options:
-- A) I can see the Side Panel — let's go!
-- B) I can see Chrome but can't find the extension
-- C) Something went wrong
-
-If B: Tell the user:
+Then auto-proceed to Step 4 (Demo). If the user later reports issues finding the extension, tell them:
 
 > The extension is loaded into Playwright's Chromium at launch time, but
 > sometimes it doesn't appear immediately. Try these steps:
@@ -133,7 +127,7 @@ If B: Tell the user:
 > If the Side Panel badge stays gray (disconnected), click the gstack icon
 > and enter port **34567** manually.
 
-If C:
+If the user reports something went wrong:
 
 1. Run `$B status` and show the output
 2. If the server is not healthy, re-run Step 0 cleanup + Step 1 connect
