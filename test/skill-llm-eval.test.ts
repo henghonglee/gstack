@@ -639,7 +639,7 @@ describeIfSelected('Plan Review skill evals', [
       startMarker: '## BEFORE YOU START:',
       endMarker: '## CRITICAL RULE',
       judgeContext: 'an engineering plan review framework with 4 review sections',
-      judgeGoal: 'how to review a plan for architecture quality, code quality, test coverage, and performance — walking through each section interactively with AskUserQuestion',
+      judgeGoal: 'how to review a plan for architecture quality, code quality, test coverage, and performance — walking through each section interactively',
     });
   }, 30_000);
 

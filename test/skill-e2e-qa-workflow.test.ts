@@ -48,7 +48,7 @@ Read the file qa/SKILL.md for the QA workflow instructions.
 Skip the preamble bash block, lake intro, telemetry, and contributor mode sections — go straight to the QA workflow.
 
 Run a Quick-depth QA test on ${testServer.url}/basic.html
-Do NOT use AskUserQuestion — run Quick tier directly.
+Run Quick tier directly.
 Do NOT try to start a server or discover ports — the URL above is ready.
 Write your report to ${qaDir}/qa-reports/qa-report.md`,
       workingDirectory: qaDir,
@@ -118,7 +118,7 @@ Read the file qa-only/SKILL.md for the QA-only workflow instructions.
 Skip the preamble bash block, lake intro, telemetry, and contributor mode sections — go straight to the QA workflow.
 
 Run a Quick QA test on ${testServer.url}/qa-eval.html
-Do NOT use AskUserQuestion — run Quick tier directly.
+Run Quick tier directly.
 Write your report to ${qaOnlyDir}/qa-reports/qa-only-report.md`,
       workingDirectory: qaOnlyDir,
       maxTurns: 40,
@@ -238,7 +238,7 @@ Skip the preamble bash block, lake intro, telemetry, and contributor mode sectio
 
 Run a Quick-tier QA test on ${qaFixUrl}
 The source code for this page is at ${qaFixDir}/index.html — you can fix bugs there.
-Do NOT use AskUserQuestion — run Quick tier directly.
+Run Quick tier directly.
 Write your report to ${qaFixDir}/qa-reports/qa-report.md
 
 This is a test+fix loop: find bugs, fix them in the source code, commit each fix, and re-verify.`,
@@ -378,7 +378,7 @@ Set up a test framework:
 4. Run the test to verify it passes
 5. Create TESTING.md explaining how to run tests
 
-Do NOT fix any bugs. Do NOT use AskUserQuestion — just pick vitest.`,
+Do NOT fix any bugs. Just pick vitest.`,
       workingDirectory: bsDir,
       maxTurns: 12,
       allowedTools: ['Bash', 'Read', 'Write', 'Edit', 'Glob'],

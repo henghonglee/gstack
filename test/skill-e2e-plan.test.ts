@@ -72,7 +72,7 @@ We're building a new user dashboard that shows recent activity, notifications, a
 
 Read plan.md — that's the plan to review. This is a standalone plan document, not a codebase — skip any codebase exploration or system audit steps.
 
-Choose HOLD SCOPE mode. Skip any AskUserQuestion calls — this is non-interactive.
+Choose HOLD SCOPE mode. This is non-interactive.
 Write your complete review directly to ${planDir}/review-output.md
 
 Focus on reviewing the plan content: architecture, error handling, security, and performance.`,
@@ -156,7 +156,7 @@ We're building a new user dashboard that shows recent activity, notifications, a
 
 Read plan.md — that's the plan to review. This is a standalone plan document, not a codebase — skip any codebase exploration or system audit steps.
 
-Choose SELECTIVE EXPANSION mode. Skip any AskUserQuestion calls — this is non-interactive.
+Choose SELECTIVE EXPANSION mode. This is non-interactive.
 For the cherry-pick ceremony, accept all expansion proposals automatically.
 Write your complete review directly to ${planDir}/review-output-selective.md
 
@@ -250,7 +250,7 @@ Replace session-cookie auth with JWT tokens. Currently using express-session + R
 
 Read plan.md — that's the plan to review. This is a standalone plan document, not a codebase — skip any codebase exploration steps.
 
-Proceed directly to the full review. Skip any AskUserQuestion calls — this is non-interactive.
+Proceed directly to the full review. This is non-interactive.
 Write your complete review directly to ${planDir}/review-output.md
 
 Focus on architecture, code quality, tests, and performance sections.`,
@@ -374,7 +374,7 @@ Skip the preamble bash block, lake intro, telemetry, and contributor mode sectio
 
 Read plan.md — that's the plan to review. This is a standalone plan with source code in app.ts and dashboard.ts.
 
-Proceed directly to the full review. Skip any AskUserQuestion calls — this is non-interactive.
+Proceed directly to the full review. This is non-interactive.
 
 IMPORTANT: After your review, you MUST write the test-plan artifact as described in the "Test Plan Artifact" section of SKILL.md. The remote-slug shim is at ${planDir}/browse/bin/remote-slug.
 
@@ -594,7 +594,7 @@ We're building a real-time notification system for our SaaS app.
 
 Read plan.md — that's the plan to review. This is a standalone plan document, not a codebase — skip any codebase exploration steps.
 
-Proceed directly to the full review. Skip any AskUserQuestion calls — this is non-interactive.
+Proceed directly to the full review. This is non-interactive.
 Skip the preamble bash block, lake intro, telemetry, and contributor mode sections.
 
 CRITICAL REQUIREMENT: plan.md IS the plan file for this review session. After completing your review, you MUST write a "## GSTACK REVIEW REPORT" section to the END of plan.md, exactly as described in the "Plan File Review Report" section of SKILL.md. If gstack-review-read is not available or returns NO_REVIEWS, write the placeholder table with all four review rows (CEO, Codex, Eng, Design). Use the Edit tool to append to plan.md — do NOT overwrite the existing plan content.
@@ -680,7 +680,7 @@ describeIfSelected('Codex Offering E2E', [
 
 Summarize the Codex/${featureName} integration — answer these specific questions:
 1. How is Codex availability checked? (what exact bash command?)
-2. How is the user prompted? (via AskUserQuestion? what are the options?)
+2. How is the user prompted? (what are the options?)
 3. What happens when Codex is NOT available? (fallback to subagent? skip entirely?)
 4. Is this step blocking (gates the workflow) or optional (can be skipped)?
 5. What prompt/context is sent to Codex?

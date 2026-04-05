@@ -68,7 +68,7 @@ app.listen(3000);
 Run /cso on this repo (full daily audit, no flags).
 
 IMPORTANT:
-- Do NOT use AskUserQuestion — skip any interactive prompts.
+- Skip any interactive prompts.
 - Focus on finding the planted vulnerabilities in this small repo.
 - Produce the SECURITY FINDINGS table.
 - Save the report to .gstack/security-reports/.`,
@@ -157,7 +157,7 @@ app.post('/webhook/stripe', (req, res) => {
 Run /cso --diff on this repo. The base branch is "main".
 
 IMPORTANT:
-- Do NOT use AskUserQuestion — skip any interactive prompts.
+- Skip any interactive prompts.
 - Focus on changes in the current branch vs main.
 - The webhook.ts file was added on this branch — it should be analyzed.`,
       workingDirectory: csoDiffDir,
@@ -231,7 +231,7 @@ CMD ["node", "server.js"]
 Run /cso --infra on this repo. This should run infrastructure-only phases (0-6, 12-14).
 
 IMPORTANT:
-- Do NOT use AskUserQuestion — skip any interactive prompts.
+- Skip any interactive prompts.
 - This is a TINY repo with only 3 files: .github/workflows/ci.yml, Dockerfile, and package.json. Do NOT waste turns exploring — just read those files directly and audit them.
 - The Dockerfile has no USER directive (runs as root). The CI workflow uses an unpinned third-party GitHub Action (some-third-party/action@main).
 - Focus on infrastructure findings, NOT code-level OWASP scanning.

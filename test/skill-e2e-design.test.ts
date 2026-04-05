@@ -95,7 +95,7 @@ Skip the preamble bash block, lake intro, telemetry, and contributor mode sectio
 
 This is a civic tech data platform called CivicPulse for government employees who need to access public data. Read the README.md for details.
 
-Skip research — work from your design knowledge. Skip the font preview page. Skip any AskUserQuestion calls — this is non-interactive. Accept your first design system proposal.
+Skip research — work from your design knowledge. Skip the font preview page. This is non-interactive. Accept your first design system proposal.
 
 Write DESIGN.md and CLAUDE.md (or update it) in the working directory.`,
       workingDirectory: designDir,
@@ -221,7 +221,7 @@ Body: system-ui
 
 There is already a DESIGN.md in this repo. Update it with a complete design system for CivicPulse, a civic tech data platform for government employees.
 
-Skip research. Skip font preview. Skip any AskUserQuestion calls — this is non-interactive.`,
+Skip research. Skip font preview. This is non-interactive.`,
       workingDirectory: designDir,
       maxTurns: 20,
       timeout: 360_000,
@@ -364,7 +364,7 @@ Build a user dashboard that shows account stats, recent activity, and settings.
 
 Review the plan in ./plan.md. This plan has several design gaps — it uses vague language like "clean, modern UI" and "cards and icons", mentions a "hero section with gradient" (AI slop), and doesn't specify empty states, error states, loading states, responsive behavior, or accessibility.
 
-Skip the preamble bash block. Skip any AskUserQuestion calls — this is non-interactive. Rate each design dimension 0-10 and explain what would make it a 10. Then EDIT plan.md to add the missing design decisions (interaction state table, empty states, responsive behavior, etc.).
+Skip the preamble bash block. This is non-interactive. Rate each design dimension 0-10 and explain what would make it a 10. Then EDIT plan.md to add the missing design decisions (interaction state table, empty states, responsive behavior, etc.).
 
 IMPORTANT: Do NOT try to browse any URLs or use a browse binary. This is a plan review, not a live site audit. Just read the plan file, review it, and edit it to fix the gaps.`,
         workingDirectory: reviewDir,
@@ -438,7 +438,7 @@ Migrate user records from PostgreSQL to a new schema with better indexing.
 
 Review the plan in ./backend-plan.md. This is a pure backend database migration plan with no UI changes.
 
-Skip the preamble bash block. Skip any AskUserQuestion calls — this is non-interactive. Write your findings directly to stdout.
+Skip the preamble bash block. This is non-interactive. Write your findings directly to stdout.
 
 IMPORTANT: Do NOT try to browse any URLs or use a browse binary. This is a plan review, not a live site audit.`,
         workingDirectory: reviewDir,
@@ -570,7 +570,7 @@ B="${browseBin}"
 
 Read design-review/SKILL.md for the design review + fix workflow.
 
-Review the site at ${serverUrl}. Use --quick mode. Skip any AskUserQuestion calls — this is non-interactive. Fix up to 3 issues max. Write your report to ./design-audit.md.`,
+Review the site at ${serverUrl}. Use --quick mode. This is non-interactive. Fix up to 3 issues max. Write your report to ./design-audit.md.`,
       workingDirectory: qaDesignDir,
       maxTurns: 30,
       timeout: 360_000,
