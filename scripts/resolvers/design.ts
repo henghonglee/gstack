@@ -155,7 +155,7 @@ After the first navigation, check if the URL changed to a login-like path:
 \`\`\`bash
 $B url
 \`\`\`
-If URL contains \`/login\`, \`/signin\`, \`/auth\`, or \`/sso\`: the site requires authentication. AskUserQuestion: "This site requires authentication. Want to import cookies from your browser? Run \`/setup-browser-cookies\` first if needed."
+If URL contains \`/login\`, \`/signin\`, \`/auth\`, or \`/sso\`: the site requires authentication. Log: "This site requires authentication. Run \`/setup-browser-cookies\` to import cookies from your browser." Then attempt to proceed with the current session state.
 
 ### Design Audit Checklist (10 categories, ~80 items)
 
@@ -457,13 +457,9 @@ After the wireframe is approved, offer outside design perspectives:
 which codex 2>/dev/null && echo "CODEX_AVAILABLE" || echo "CODEX_NOT_AVAILABLE"
 \`\`\`
 
-If Codex is available, use AskUserQuestion:
-> "Want outside design perspectives on the chosen approach? Codex proposes a visual thesis, content plan, and interaction ideas. A Claude subagent proposes an alternative aesthetic direction."
->
-> A) Yes — get outside design voices
-> B) No — proceed without
+If Codex is available, auto-run outside design voices. Log: "Running outside design perspectives — Codex visual thesis + Claude alternative aesthetic."
 
-If user chooses A, launch both voices simultaneously:
+Launch both voices simultaneously:
 
 1. **Codex** (via Bash, \`model_reasoning_effort="medium"\`):
 \`\`\`bash
@@ -577,13 +573,7 @@ Be bold. Be specific. No hedging.`;
   // Build the opt-in section
   const optInSection = isAutomatic ? `
 **Automatic:** Outside voices run automatically when Codex is available. No opt-in needed.` : `
-Use AskUserQuestion:
-> "Want outside design voices${isPlanDesignReview ? ' before the detailed review' : ''}? Codex evaluates against OpenAI's design hard rules + litmus checks; Claude subagent does an independent ${isDesignConsultation ? 'design direction proposal' : 'completeness review'}."
->
-> A) Yes — run outside design voices
-> B) No — proceed without
-
-If user chooses B, skip this step and continue.`;
+Auto-run outside design voices${isPlanDesignReview ? ' before the detailed review' : ''}. Log: "Running outside design voices — Codex design hard rules + Claude independent ${isDesignConsultation ? 'design direction proposal' : 'completeness review'}."`;
 
   // Build the synthesis section
   const synthesisSection = isPlanDesignReview ? `
@@ -820,8 +810,7 @@ $D compare --images "$_DESIGN_DIR/variant-A.png,$_DESIGN_DIR/variant-B.png,$_DES
 This opens the board in the user's default browser and blocks until feedback is
 received. Read stdout for the structured JSON result. No polling needed.
 
-If \`$D serve\` is not available or fails, fall back to AskUserQuestion:
-"I've opened the design board. Which variant do you prefer? Any feedback?"
+If \`$D serve\` is not available or fails, auto-select variant A (the first variant) and proceed.
 
 **Step 5: Handle feedback**
 
@@ -909,8 +898,7 @@ The feedback JSON has this shape:
 1. Read \`preferred\`, \`ratings\`, \`comments\`, \`overall\` from the JSON
 2. Proceed with the approved variant
 
-**If \`$D serve\` fails or no feedback within 10 minutes:** Fall back to AskUserQuestion:
-"I've opened the design board. Which variant do you prefer? Any feedback?"
+**If \`$D serve\` fails or no feedback within 10 minutes:** Auto-select variant A (the first variant) and proceed.
 
 **After receiving feedback (any path):** Output a clear summary confirming
 what was understood:
@@ -919,11 +907,9 @@ what was understood:
 PREFERRED: Variant [X]
 RATINGS: [list]
 YOUR NOTES: [comments]
-DIRECTION: [overall]
+DIRECTION: [overall]"
 
-Is this right?"
-
-Use AskUserQuestion to verify before proceeding.
+Proceed with the preferred variant.
 
 **Save the approved choice:**
 \`\`\`bash

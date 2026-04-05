@@ -32,10 +32,9 @@ Store conventions as prose context for use in Phase 8e.5 or Step 3.4. **Skip the
 
 **If BOOTSTRAP_DECLINED** appears: Print "Test bootstrap previously declined — skipping." **Skip the rest of bootstrap.**
 
-**If NO runtime detected** (no config files found): Use AskUserQuestion:
-"I couldn't detect your project's language. What runtime are you using?"
-Options: A) Node.js/TypeScript B) Ruby/Rails C) Python D) Go E) Rust F) PHP G) Elixir H) This project doesn't need tests.
-If user picks H → write \`.gstack/no-test-bootstrap\` and continue without tests.
+**If NO runtime detected** (no config files found): Check for common source file extensions
+(\`.ts\`, \`.js\`, \`.rb\`, \`.py\`, \`.go\`, \`.rs\`, \`.php\`, \`.ex\`) to infer the runtime. If still
+unclear, write \`.gstack/no-test-bootstrap\` and continue without tests.
 
 **If runtime detected but no test framework — bootstrap:**
 
@@ -60,16 +59,11 @@ If WebSearch is unavailable, use this built-in knowledge table:
 
 ### B3. Framework selection
 
-Use AskUserQuestion:
-"I detected this is a [Runtime/Framework] project with no test framework. I researched current best practices. Here are the options:
-A) [Primary] — [rationale]. Includes: [packages]. Supports: unit, integration, smoke, e2e
-B) [Alternative] — [rationale]. Includes: [packages]
-C) Skip — don't set up testing right now
-RECOMMENDATION: Choose A because [reason based on project context]"
+Auto-choose the primary recommended framework for the detected runtime (from the table
+above). Log: "Auto-selected [Primary] for [Runtime] — the recommended default."
 
-If user picks C → write \`.gstack/no-test-bootstrap\`. Tell user: "If you change your mind later, delete \`.gstack/no-test-bootstrap\` and re-run." Continue without tests.
-
-If multiple runtimes detected (monorepo) → ask which runtime to set up first, with option to do both sequentially.
+If multiple runtimes detected (monorepo), set up the primary runtime first, then proceed
+to the next sequentially.
 
 ### B4. Install and configure
 
@@ -322,7 +316,7 @@ When checking each branch, also determine whether a unit test or E2E/integration
   sections.push(`
 ### REGRESSION RULE (mandatory)
 
-**IRON RULE:** When the coverage audit identifies a REGRESSION — code that previously worked but the diff broke — a regression test is ${mode === 'plan' ? 'added to the plan as a critical requirement' : 'written immediately'}. No AskUserQuestion. No skipping. Regressions are the highest-priority test because they prove something broke.
+**IRON RULE:** When the coverage audit identifies a REGRESSION — code that previously worked but the diff broke — a regression test is ${mode === 'plan' ? 'added to the plan as a critical requirement' : 'written immediately'}. No skipping. Regressions are the highest-priority test because they prove something broke.
 
 A regression is when:
 - The diff modifies existing behavior (not new code)
@@ -465,25 +459,15 @@ Before proceeding, check CLAUDE.md for a \`## Test Coverage\` section with \`Min
 Using the coverage percentage from the diagram in substep 4 (the \`COVERAGE: X/Y (Z%)\` line):
 
 - **>= target:** Pass. "Coverage gate: PASS ({X}%)." Continue.
-- **>= minimum, < target:** Use AskUserQuestion:
-  - "AI-assessed coverage is {X}%. {N} code paths are untested. Target is {target}%."
-  - RECOMMENDATION: Choose A because untested code paths are where production bugs hide.
-  - Options:
-    A) Generate more tests for remaining gaps (recommended)
-    B) Ship anyway — I accept the coverage risk
-    C) These paths don't need tests — mark as intentionally uncovered
-  - If A: Loop back to substep 5 (generate tests) targeting the remaining gaps. After second pass, if still below target, present AskUserQuestion again with updated numbers. Maximum 2 generation passes total.
-  - If B: Continue. Include in PR body: "Coverage gate: {X}% — user accepted risk."
-  - If C: Continue. Include in PR body: "Coverage gate: {X}% — {N} paths intentionally uncovered."
+- **>= minimum, < target:** Auto-choose: generate more tests for remaining gaps.
+  Log: "AI-assessed coverage is {X}%. Target is {target}%. Generating additional tests."
+  Loop back to substep 5 targeting the remaining gaps. Maximum 2 generation passes total.
+  If still below target after 2 passes, continue with: "Coverage gate: {X}% after 2 passes."
 
-- **< minimum:** Use AskUserQuestion:
-  - "AI-assessed coverage is critically low ({X}%). {N} of {M} code paths have no tests. Minimum threshold is {minimum}%."
-  - RECOMMENDATION: Choose A because less than {minimum}% means more code is untested than tested.
-  - Options:
-    A) Generate tests for remaining gaps (recommended)
-    B) Override — ship with low coverage (I understand the risk)
-  - If A: Loop back to substep 5. Maximum 2 passes. If still below minimum after 2 passes, present the override choice again.
-  - If B: Continue. Include in PR body: "Coverage gate: OVERRIDDEN at {X}%."
+- **< minimum:** Auto-choose: generate tests for remaining gaps.
+  Log: "AI-assessed coverage is critically low ({X}%). Generating tests to reach minimum {minimum}%."
+  Loop back to substep 5. Maximum 2 passes. If still below minimum after 2 passes,
+  continue with: "Coverage gate: {X}% after 2 passes — below minimum."
 
 **Coverage percentage undetermined:** If the coverage diagram doesn't produce a clear numeric percentage (ambiguous output, parse error), **skip the gate** with: "Coverage gate: could not determine percentage — skipping." Do not default to 0% or block.
 
