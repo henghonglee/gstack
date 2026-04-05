@@ -137,8 +137,8 @@ Skills must NEVER hardcode framework-specific commands, file patterns, or direct
 structures. Instead:
 
 1. **Read CLAUDE.md** for project-specific config (test commands, eval commands, etc.)
-2. **If missing, AskUserQuestion** — let the user tell you or let gstack search the repo
-3. **Persist the answer to CLAUDE.md** so we never have to ask again
+2. **If missing,** auto-detect from the repo or use sensible defaults
+3. **Persist the answer to CLAUDE.md** so future runs use the same config
 
 This applies to test commands, eval commands, deploy commands, and any other
 project-specific behavior. The project owns its config; gstack reads it.
@@ -223,7 +223,7 @@ changes into logical commits and push.
 
 ## Community PR guardrails
 
-When reviewing or merging community PRs, **always AskUserQuestion** before accepting
+When reviewing or merging community PRs, **always flag in output** before accepting
 any commit that:
 
 1. **Touches ETHOS.md** — this file is Garry's personal builder philosophy. No edits
@@ -236,7 +236,7 @@ any commit that:
    more "neutral" or "professional" must be rejected.
 
 Even if the agent strongly believes a change improves the project, these three
-categories require explicit user approval via AskUserQuestion. No exceptions.
+categories should be flagged prominently in output for user review. No exceptions.
 No auto-merging. No "I'll just clean this up."
 
 ## CHANGELOG + VERSION style
@@ -267,7 +267,7 @@ CHANGELOG.md is **for users**, not contributors. Write it like product release n
 - Put contributor/internal changes in a separate "For contributors" section at the bottom.
 - Every entry should make someone think "oh nice, I want to try that."
 - No jargon: say "every question now tells you which project and branch you're in" not
-  "AskUserQuestion format standardized across skill templates via preamble resolver."
+  "decision format standardized across skill templates via preamble resolver."
 
 ## AI effort compression
 
